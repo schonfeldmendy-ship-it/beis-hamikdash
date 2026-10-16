@@ -6,13 +6,15 @@ You play as a Chassidishe Yid of today (shtreimel or spodik or hat, bekishe, gar
 
 Walk out through the **Chuldah gate tunnel**, down the **Southern Steps** into **Yerushalayim**, and along the **Pilgrim Road** (the stepped street) to the **Shiloach pool** — past shops, dove-sellers, shepherds and mikvaos. Pilgrims lead **sheep, goats and calves** up to the Mikdash for their korbanos, carry lambs on their shoulders and doves in cages, and a **Bikkurim procession** goes up with the ox crowned in olive leaves, horns overlaid with gold, the flute playing (Mishnah Bikkurim 3).
 
+Available in **English, עברית, אידיש (Chassidish) and Español** — choose on the opening screen or in ⚙.
+
 Everything is in **one file: `index.html`**. No install, no build. Optional folders: `models/` for real 3D characters, `audio/` for real recordings (see the README in each).
 
 ## Run it
 
 - **Locally:** double-click `index.html` (Chrome, Edge, Firefox or Safari). Internet is needed the first time to load three.js and fonts from the CDN.
 - **GitHub Pages:** push this folder to a repo → Settings → Pages → *Deploy from branch* → `main` / root. Your tour will be at `https://<you>.github.io/<repo>/`.
-- Slow computer or phone? Open `index.html?low` for lighter graphics and fewer people.
+- Slow computer or phone? It adjusts itself automatically (resolution scales down to keep it smooth, and it never renders faster than 60 fps). You can also pick **Graphics → Light** in ⚙, or open `index.html?low`.
 
 ## Controls
 
@@ -27,6 +29,11 @@ Everything is in **one file: `index.html`**. No install, no build. Optional fold
 | Measurements table | `R` | 📐 button | — |
 | Go to a place | `G` | 🚶 button | — |
 | Tamid & Birkas Kohanim | 🔥 Avodah button | 🔥 button | X |
+| Your journey (📜) | `J` | tap the panel | — |
+
+## How it begins
+
+A cinematic flight from Har HaZeisim over Nachal Kidron and the city to Har HaBayis, with music. Then you dress your character (shtreimel / spodik / hat, bekishe / rekel / zupitze, gartel, peyos, beard, yichus) and begin **your pilgrimage** in the plaza below the Southern Steps — a ten-step journey (📜) from the mikveh up to Ezras Yisrael, the Leviim, the Tamid and Birkas Kohanim.
 
 ## What's inside
 
@@ -52,6 +59,6 @@ See **SOURCES.md** for every source and diagram consulted.
 
 ## Code map (inside `index.html`)
 
-`01 core` renderer, sky/sun, procedural textures, floor heights · `02 world` all the architecture · `03 people` character builder, NPCs and dialogue · `04 audio` the synthesised soundscape · `05 places` measurements & descriptions · `06 game` controls, camera, UI, blueprint.
+`01 core` renderer, sky/sun, light pool, static merging, floor heights · `02 world` all the architecture · `03 people` character builder, NPCs and dialogue · `04 audio` the synthesised soundscape · `05 i18n` the four languages · `05 places` measurements & descriptions · `06 game` controls, camera, UI, blueprint.
 
 Built with [three.js](https://threejs.org) (MIT).
