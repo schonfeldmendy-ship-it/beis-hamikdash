@@ -7,6 +7,8 @@
 <meta name="description" content="Walk through the Second Temple (Beis HaMikdash HaSheni) and Yerushalayim in 3D, built to the measurements of Mishnah Middos. English · עברית · אידיש · Español">
 <meta name="theme-color" content="#120d07">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;700;900&family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{--gold:#d9b25c;--gold2:#f3d58a;--gold3:#fff1c8;--panel:rgba(18,13,8,.78);--line:rgba(217,178,92,.32);--txt:#f4ead5;--dim:#c3b38c}
@@ -26,7 +28,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* loader */
 #loader{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at 50% 40%,#2a1f10,#070503 70%);gap:14px;transition:opacity .8s}
 #loader .he{font-size:22px;color:var(--dim)}#loader h1{margin:0;font-size:clamp(38px,7vw,76px);color:var(--gold2);font-weight:700;letter-spacing:.02em}
-#loader p{margin:0;color:var(--dim)}#loadbar{width:min(360px,70vw);height:3px;background:#3a2c17;border-radius:4px;overflow:hidden}#loadbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b98a32,#f3d58a);transition:width .3s}
+#loader p{margin:0;color:var(--dim)}
+#loadbar{width:min(360px,70vw);height:3px;background:#3a2c17;border-radius:4px;overflow:hidden}#loadbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#b98a32,#f3d58a);transition:width .3s}
 /* splash */
 #splash{position:fixed;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px;background:radial-gradient(ellipse at 50% 55%,rgba(10,7,4,.15),rgba(10,7,4,.78) 75%),linear-gradient(180deg,rgba(10,7,4,.55),rgba(10,7,4,0) 30%,rgba(10,7,4,0) 60%,rgba(10,7,4,.85))}
 #splash .kicker{font-family:'Frank Ruhl Libre',serif;font-size:clamp(18px,2.4vw,26px);color:var(--gold3);letter-spacing:.08em;opacity:.9;direction:rtl}
@@ -35,8 +38,12 @@ button{font:inherit;color:inherit;cursor:pointer}
 #splash .langs{display:flex;gap:8px;margin:26px 0 18px;flex-wrap:wrap;justify-content:center}
 .lang{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:rgba(20,15,9,.6);font-size:15px;backdrop-filter:blur(8px)}
 .lang.on{background:var(--gold);color:#1b140c;border-color:var(--gold2);font-weight:600}
-#splash .begin{font-size:18px;padding:15px 34px;border-radius:999px}
-#splash .note{margin-top:14px;font-size:13px;color:var(--dim)}
+#splash .begin{font-size:18px;padding:15px 34px;border-radius:999px;min-width:220px}
+#splash .begin:disabled{filter:saturate(.35) brightness(.8);cursor:progress;box-shadow:none}
+#prog{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:opacity .8s}#prog p{margin:0;font-size:12.5px;color:var(--dim);min-height:1.2em}
+#music{position:fixed;left:50%;bottom:18px;translate:-50% 0;padding:9px 16px;font-size:14px;display:flex;gap:10px;align-items:center;cursor:pointer;white-space:nowrap;animation:fin .6s ease both}#music .ic{font-size:20px;color:var(--gold2);animation:bob 1s ease-in-out infinite}#music i{display:inline-block;color:var(--gold2);font-style:normal;transition:transform .3s}@keyframes bob{50%{transform:translateY(-3px)}}
+@media (max-width:760px){#music{bottom:auto;top:150px;left:14px;translate:none;font-size:12.5px;white-space:normal;max-width:72vw}[dir=rtl] #music{left:auto;right:14px}#topbar{flex-direction:column;align-items:flex-end;max-width:none}#topbar .lbl{display:none}#topbar .btn{min-width:42px;padding:8px 10px}#loc{max-width:calc(100vw - 90px)}#quest{width:calc(100vw - 90px)}}
+#splash .note{margin-top:14px;font-size:13px;color:var(--dim);border:0;padding:0}
 .ornament{width:min(420px,70vw);height:14px;margin:10px auto;background:radial-gradient(circle at 50% 50%,var(--gold2) 0 3px,transparent 4px),linear-gradient(90deg,transparent,var(--gold) 20%,var(--gold) 45%,transparent 47%,transparent 53%,var(--gold) 55%,var(--gold) 80%,transparent);background-size:100% 100%,100% 1px;background-repeat:no-repeat;background-position:center,center}
 /* cinematic */
 #cine{position:fixed;inset:0;z-index:35;pointer-events:none}
@@ -109,20 +116,18 @@ kbd{background:#2a2012;border:1px solid var(--line);border-radius:4px;padding:1p
 @media (max-width:760px){#loc .he{font-size:19px}#minimap{width:120px;height:120px}#side{top:auto;bottom:0;right:0;left:0;width:auto;max-height:58vh;border-radius:16px 16px 0 0}#topbar{max-width:64vw}#prompt{bottom:180px;white-space:normal;max-width:90vw}#quest{top:80px;width:62vw}#creator{top:auto;height:62vh;left:8px;right:8px;width:auto;bottom:8px}#dragHint{left:50%;bottom:auto;top:16px}}
 </style>
 <script type="importmap">
-{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"}}
 </script>
 </head>
 <body>
 <div id="stage"></div>
 
-<div id="loader">
+<div id="loader" class="hidden">
   <div class="he">בית המקדש השני</div>
   <h1 class="serif">Beis HaMikdash</h1>
-  <p id="loadmsg">…</p>
-  <div id="loadbar"><i></i></div>
 </div>
 
-<div id="splash" class="hidden">
+<div id="splash">
   <div class="kicker fade-in">בית המקדש השני · ירושלים</div>
   <h1 class="fade-in" data-i="heTitle"></h1>
   <div class="ornament"></div>
@@ -130,7 +135,8 @@ kbd{background:#2a2012;border:1px solid var(--line);border-radius:4px;padding:1p
   <div class="langs fade-in">
     <button class="lang" data-lang="en">English</button><button class="lang" data-lang="he">עברית</button><button class="lang" data-lang="yi">אידיש</button><button class="lang" data-lang="es">Español</button>
   </div>
-  <button class="btn primary begin fade-in" id="begin" data-i="begin"></button>
+  <button class="btn primary begin fade-in" id="begin" disabled><span id="beginTxt">…</span></button>
+  <div id="prog"><div id="loadbar"><i></i></div><p id="loadmsg"></p></div>
   <div class="note fade-in">🎧 <span data-i="headphones"></span></div>
 </div>
 
@@ -162,6 +168,7 @@ kbd{background:#2a2012;border:1px solid var(--line);border-radius:4px;padding:1p
     <button class="btn" id="bHelp">?</button>
   </div>
   <div id="prompt" class="panel hidden"></div>
+  <div id="music" class="panel hidden"><span class="ic">♪</span><span id="musicTxt"></span><i id="musicArrow">➤</i></div>
   <div id="toast" class="panel" style="opacity:0"></div>
   <div id="dialog" class="panel hidden"><div class="who" id="dWho"></div><div class="q" id="dQ"></div><div class="txt" id="dTxt"></div></div>
   <canvas id="minimap" class="panel" width="360" height="360"></canvas>
@@ -206,8 +213,13 @@ const QUALITY = { pref: GFX_PREF, high: GFX_PREF === 'high' || (GFX_PREF === 'au
 const AMAH_CM = { naeh: 48, chazonIsh: 57.6, avg: 52.5 };
 let amahStd = 'naeh';
 
-const loadStep = (pct, msg) => { $('loadbar').firstElementChild.style.width = pct + '%'; if (msg) $('loadmsg').textContent = msg; };
-const nextFrame = () => new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+const BOOT_T0 = performance.now(), bootTimes = [];
+const loadStep = (pct, msg) => {
+  bootTimes.push([msg, Math.round(performance.now() - BOOT_T0)]);
+  $('loadbar').firstElementChild.style.width = pct + '%'; if (msg) $('loadmsg').textContent = typeof S !== 'undefined' && S[msg] ? T(msg) : msg;
+  const b = $('beginTxt'); if (b && $('begin').disabled) b.textContent = T('preparing', Math.round(pct));
+};
+const nextFrame = () => new Promise(r => setTimeout(r, 16));   // yield so the progress bar can paint (never wait on a frame that may be throttled)
 
 /* ---------- seeded random ---------- */
 function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -396,14 +408,14 @@ function buildMaterials() {
   MAT.pave = std({ map: TEX.pave, roughness: 0.75 });
   MAT.plaster = std({ color: 0xf2eee4, roughness: 0.85 });
   MAT.gold = std({ color: 0xe2b24a, metalness: 1, roughness: 0.22 });
-  MAT.goldDim = std({ color: 0xc69a3c, metalness: 1, roughness: 0.4 });
-  MAT.bronze = std({ color: 0xb98a4a, metalness: 0.95, roughness: 0.3 });
+  MAT.goldDim = std({ color: 0xd2a64a, metalness: 0.5, roughness: 0.6, emissive: 0x2e1c08 });
+  MAT.bronze = std({ color: 0xc08e4c, metalness: 0.85, roughness: 0.32 });
   MAT.silver = std({ color: 0xe8e8ec, metalness: 1, roughness: 0.2 });
   MAT.cedar = std({ map: TEX.cedar, roughness: 0.7 });
   MAT.dark = std({ color: 0x15100a, roughness: 1 });
   MAT.tile = std({ color: 0x9c5a3a, roughness: 0.9 });
   MAT.parochet = std({ map: TEX.parochet, roughness: 0.95, side: THREE.DoubleSide });
-  MAT.water = std({ color: 0x3f6f7a, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.85 });
+  MAT.water = std({ color: 0x2f6a78, roughness: 0.06, metalness: 0.1, transparent: true, opacity: 0.78, depthWrite: false });
   MAT.iron = std({ color: 0x3a3632, metalness: 0.8, roughness: 0.5 });
   MAT.stoneRed = std({ color: 0xa3212a, roughness: 0.8 });
   MAT.rock = std({ color: 0x9c8f78, roughness: 1, flatShading: true });
@@ -467,7 +479,7 @@ function mergeStatic() {
   scene.updateMatrixWorld(true);
   const groups = new Map(), victims = [];
   scene.traverse(o => {
-    if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || !o.userData.static) return;
+    if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || !o.userData.static || o.material.vertexColors || o.material.transparent) return;   // (vertex-coloured terrain keeps its colours)
     let p = o.parent; while (p) { if (p.userData && p.userData.dynamic) return; p = p.parent; }
     const g = o.geometry; if (!g.attributes.position || !g.attributes.normal) return;
     const c = new THREE.Vector3(); o.getWorldPosition(c);
@@ -523,7 +535,7 @@ const LAY = {
   heichal: [-98, -58, -10, 10], traksin: [-99, -98, -10, 10], kodesh: [-119, -99, -10, 10],
   heichalDoor: [-58, -52, -5, 5], ulamDoor: [-41, -36, -10, 10],
 };
-const NIK = { x: 44, z: 0, r: 15 };   // centre of the semicircular 15 steps
+const NIK = { x: 44, z: 0, r: 7.5 };  // the 15 semicircular steps: each half an amah high, half an amah deep (Middot 2:3, 2:5)
 
 /* ---------- the city: Chuldah tunnel, Southern Steps, plaza, Pilgrim Road, Shiloach ---------- */
 const CITY = {
@@ -544,7 +556,7 @@ function cityGround(x, z) {
   if (inRect(x, z, CITY.street)) return streetY(z);
   if (inRect(x, z, CITY.pool)) {   // steps descending on all sides into the Shiloach pool
     const w = CITY.water, dOut = Math.max(w[0] - x, x - w[1], w[2] - z, z - w[3]);
-    if (dOut <= 0) return POOL_Y - 3;
+    if (dOut <= 0) return POOL_Y - 3.2;
     if (dOut < 5) return POOL_Y - (5 - Math.ceil(dOut)) * 0.6;
     return POOL_Y;
   }
@@ -577,7 +589,7 @@ function groundHeight(x, z, yHint) {
   if (x >= 40 && x < 44 && Math.abs(z) <= 5) return H.yisrael;
   // 15 semicircular steps
   const dx = x - NIK.x, dz = z - NIK.z, r = Math.hypot(dx, dz);
-  if (dx >= 0 && r < NIK.r) return H.yisrael - Math.max(1, Math.ceil(r)) * 0.5;
+  if (dx >= 0 && r < NIK.r) return H.yisrael - Math.max(1, Math.ceil(r / 0.5)) * 0.5;
   // Ezras Nashim
   if (x >= 44 && x <= 182 && Math.abs(z) <= 67.5) return H.nashim;
   // 12 steps from the Cheil up to Ezras Nashim (east gate)
@@ -605,6 +617,7 @@ function terrainH(x, z) {
   // flatten the corridor of the Pilgrim Road down to the Shiloach pool
   const w = smooth(100, 70, Math.abs(x + 80)) * smooth(230, 280, z) * smooth(1060, 990, z);
   if (w > 0) { const t = z < 342 ? H.city : z < 905 ? streetY(z) : POOL_Y; h = lerp(h, t - 0.4, w); }
+  if (x > -134 && x < -26 && z > 901 && z < 979) h = POOL_Y - 9;     // the ground falls away under the Shiloach pool
   return h;
 }
 
@@ -669,15 +682,37 @@ function buildFlames() {
     const g = new THREE.BufferGeometry(); const pos = new Float32Array(list.length * 3), size = new Float32Array(list.length), ph = new Float32Array(list.length);
     list.forEach(([x, y, z, s], i) => { pos.set([x, y + s * 0.3, z], i * 3); size[i] = s * 2.2; ph[i] = Math.random() * 10; });
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('size', new THREE.BufferAttribute(size, 1)); g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
-    const mat = new THREE.ShaderMaterial({
-      uniforms: { time: { value: 0 }, scale: { value: innerHeight } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      vertexShader: 'attribute float size; attribute float phase; uniform float time; uniform float scale; varying float vF; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vF = 0.85 + 0.15*sin(time*13.0+phase) + 0.08*sin(time*29.0+phase*2.0); gl_PointSize = size * vF * scale / -mv.z; gl_Position = projectionMatrix * mv; }',
-      fragmentShader: 'varying float vF; void main(){ vec2 p = gl_PointCoord - vec2(0.5, 0.62); p.x *= 2.0; p.y *= 1.25; float d = length(p); if (d > 1.0) discard; vec3 c = mix(vec3(1.0,0.97,0.85), vec3(1.0,0.45,0.08), smoothstep(0.0,0.9,d)); gl_FragColor = vec4(c * vF, (1.0 - smoothstep(0.2,1.0,d))); }',
-    });
-    const pts = new THREE.Points(g, mat); pts.frustumCulled = false; scene.add(pts);
-    animated.push((dt, t) => { mat.uniforms.time.value = t; mat.uniforms.scale.value = renderer.domElement.height / 2; });
+    const pts = new THREE.Points(g, flameMaterial()); pts.frustumCulled = false; scene.add(pts);
     if (key === 'night') nightLights.push({ setNight: n => pts.visible = n });
   }
+}
+
+function flameMaterial() {
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0 }, scale: { value: innerHeight } }, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    vertexShader: 'attribute float size; attribute float phase; uniform float time; uniform float scale; varying float vF; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vF = 0.85 + 0.15*sin(time*13.0+phase) + 0.08*sin(time*29.0+phase*2.0); gl_PointSize = size * vF * scale / -mv.z; gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'varying float vF; void main(){ vec2 p = gl_PointCoord - vec2(0.5, 0.62); p.x *= 2.0; p.y *= 1.25; float d = length(p); if (d > 1.0) discard; vec3 c = mix(vec3(1.0,0.97,0.85), vec3(1.0,0.45,0.08), smoothstep(0.0,0.9,d)); gl_FragColor = vec4(c * vF, (1.0 - smoothstep(0.2,1.0,d))); }',
+  });
+  animated.push((dt, t) => { mat.uniforms.time.value = t; mat.uniforms.scale.value = renderer.domElement.height / 2; });
+  return mat;
+}
+
+/* swifts and doves wheeling over Har HaBayis — one points object, wings drawn in the shader */
+function buildBirds() {
+  const n = QUALITY.high ? 90 : 55, pos = new Float32Array(n * 3), ph = new Float32Array(n), size = new Float32Array(n), B = [];
+  for (let i = 0; i < n; i++) { const flock = i % 5; B.push({ cx: [-40, 60, -70, 120, -60][flock] + rr(-30, 30), cz: [0, 30, -60, 0, 300][flock] + rr(-30, 30), cy: rr(70, 150), rx: rr(25, 70), rz: rr(25, 70), w: rr(0.25, 0.6) * (rnd() < 0.5 ? 1 : -1), p: rr(0, 6.28) }); ph[i] = rr(0, 10); size[i] = rr(1.1, 1.7); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('phase', new THREE.BufferAttribute(ph, 1)); g.setAttribute('size', new THREE.BufferAttribute(size, 1));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0 }, scale: { value: innerHeight } }, transparent: true, depthWrite: false,
+    vertexShader: 'attribute float phase; attribute float size; uniform float time; uniform float scale; varying float vA; void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vA = 0.45 * sin(time * 11.0 + phase); gl_PointSize = clamp(size * scale / -mv.z, 2.0, 40.0); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'varying float vA; float seg(vec2 p, vec2 a, vec2 b){ vec2 pa = p - a, ba = b - a; float h = clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0); return length(pa - ba * h); } void main(){ vec2 p = gl_PointCoord - 0.5; p.y = -p.y; vec2 l = vec2(-0.45, 0.12 + vA * 0.4), r = vec2(0.45, 0.12 + vA * 0.4), c = vec2(0.0, -0.02); float d = min(seg(p, c, l), seg(p, c, r)); float a = 1.0 - smoothstep(0.035, 0.075, d); if (a < 0.02) discard; gl_FragColor = vec4(0.12, 0.1, 0.09, a * 0.9); }',
+  });
+  const pts = new THREE.Points(g, mat); pts.frustumCulled = false; scene.add(pts);
+  animated.push((dt, t) => {
+    mat.uniforms.time.value = t; mat.uniforms.scale.value = renderer.domElement.height / 2;
+    for (let i = 0; i < n; i++) { const b = B[i], a = b.p + t * b.w * 0.5; pos[i * 3] = b.cx + Math.cos(a) * b.rx; pos[i * 3 + 1] = b.cy + Math.sin(a * 2.3) * 6; pos[i * 3 + 2] = b.cz + Math.sin(a) * b.rz; }
+    g.attributes.position.needsUpdate = true; pts.visible = sunDir.y > 0.05;
+  });
 }
 
 /** light sources are served by a small pool of real lights (see updateLightPool) */
@@ -727,21 +762,22 @@ function buildColumns() {
    ===================================================================== */
 async function buildWorld() {
   buildMaterials();
-  loadStep(12, 'Raising Har HaBayis…'); await nextFrame();
+  loadStep(12, 'ld1'); await nextFrame();
   buildTerrainAndCity();
-  loadStep(28, 'Building the porticoes…'); await nextFrame();
+  loadStep(28, 'ld2'); await nextFrame();
   buildMount();
   buildCity();
-  loadStep(42, 'Ezras Nashim and the fifteen steps…'); await nextFrame();
+  loadStep(42, 'ld3'); await nextFrame();
   buildNashim();
-  loadStep(56, 'The Azarah and the Mizbeach…'); await nextFrame();
+  loadStep(56, 'ld4'); await nextFrame();
   buildAzarah();
   buildAltar();
-  loadStep(70, 'The Heichal…'); await nextFrame();
+  loadStep(70, 'ld5'); await nextFrame();
   buildHeichal();
   buildColumns();
   buildFlames();
-  loadStep(78, 'Polishing the stones…'); await nextFrame();
+  buildBirds();
+  loadStep(78, 'ld6'); await nextFrame();
   const merged = mergeStatic(); console.log('merged static meshes', merged);
   buildColliderGrid();
   initLightPool(QUALITY.high ? 4 : 2);
@@ -925,10 +961,12 @@ function buildNashim() {
   [-30, 30].forEach(z => { boxE(44, 44.4, Y, Y + 6, z - 3, z + 3, MAT.cedar, { collide: false }); });
 
   // the 15 semicircular steps (Middot 2:5) — Shir HaMa'alos
-  for (let k = NIK.r; k >= 1; k--) {
-    const top = H.yisrael - k * 0.5;
-    const g = new THREE.CylinderGeometry(k, k, top - Y + 0.02, 48, 1, false, 0, Math.PI);
-    const m = mesh(g, MAT.white, NIK.x, (Y + top) / 2, NIK.z, scene, false); walkMeshes.push(m);
+  for (let k = 15; k >= 1; k--) {
+    const top = H.yisrael - k * 0.5, r = k * NIK.r / 15;
+    const g = new THREE.CylinderGeometry(r, r, top - Y + 0.02, 64, 1, false, 0, Math.PI);
+    const m = mesh(g, k % 2 ? MAT.white : MAT.marble, NIK.x, (Y + top) / 2, NIK.z, scene, false); walkMeshes.push(m);
+    const lip = new THREE.TorusGeometry(r, 0.05, 4, 64, Math.PI); lip.rotateX(Math.PI / 2); lip.rotateY(Math.PI / 2);
+    mesh(lip, MAT.old, NIK.x, top - 0.03, NIK.z, scene, false);
   }
 
   // four unroofed corner chambers, 40×40 (Middot 2:5)
@@ -943,7 +981,12 @@ function buildNashim() {
   };
   // SE: Nezirim — pots boiling over fires
   corner(139, 179, 27.5, 67.5, 139, 27.5, 'לשכת הנזירים', (cx, cz) => {
-    for (const [dx, dz] of [[-8, -6], [6, -4], [-2, 8], [9, 9]]) { lathe([[0, 0], [2, 0], [2.3, 1.5], [2.1, 3], [1.8, 3.1]], MAT.bronze, cx + dx, Y + 0.8, cz + dz); box(4, 0.8, 4, MAT.old, cx + dx, Y, cz + dz); flameSprite(cx + dx, Y + 0.7, cz + dz, scene, 1.6); }
+    for (const [dx, dz] of [[-8, -6], [-2, -7], [6, -4], [-2, 8], [5, 7], [9, 9]]) {
+      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2; box(0.7, 1.1, 0.7, MAT.old, cx + dx + Math.cos(a) * 0.95, Y, cz + dz + Math.sin(a) * 0.95, { collide: false }); }
+      lathe([[0, 0], [0.75, 0.05], [1.05, 0.55], [1.0, 1.1], [0.82, 1.25], [0.9, 1.32]], MAT.bronze, cx + dx, Y + 1.0, cz + dz, scene, 20);
+      flameSprite(cx + dx, Y + 0.45, cz + dz, scene, 0.9);
+      colliders.push({ x0: cx + dx - 1.3, x1: cx + dx + 1.3, z0: cz + dz - 1.3, z1: cz + dz + 1.3, bottom: Y, top: Y + 2.4 });
+    }
   });
   // NE: Etzim — wood being checked for worms
   corner(139, 179, -67.5, -27.5, 139, -27.5, 'לשכת העצים', (cx, cz) => {
@@ -991,8 +1034,8 @@ function buildNashim() {
     const lad = boxE(x + 1.2, x + 1.5, Y, Y + 48, z - 0.8, z + 0.8, MAT.cedar, { collide: false }); lad.rotation.z = -0.05;
   }
   pointLight(0xffb060, 900, 260, 112, Y + 52, 0, true, 0);
-  // Interaction: Leviim on the steps
-  interactables.push({ pos: new THREE.Vector3(52, 9, 0), r: 9, label: 'Listen — <b>Shir HaMa\'alos</b> on the fifteen steps', kind: 'sing' });
+  // Simchas Beis HaSho'eivah — join the dance between the four menoros
+  interactables.push({ pos: new THREE.Vector3(96, Y + 2, 0), r: 12, kind: 'dance' });
 }
 
 /* ---------- Azarah ---------- */
@@ -1028,8 +1071,8 @@ function buildAzarah() {
   interactables.push({ pos: new THREE.Vector3(17, Yk + 2, 58), r: 7, label: 'Lishkas HaGazis — <b>the Sanhedrin</b>', kind: 'place', place: 'gazit' });
 
   // Place of slaughter north of the Mizbeach (Middot 3:5): 24 rings, 8 tables, 8 short pillars
-  const ringG = new THREE.TorusGeometry(0.45, 0.09, 8, 18); ringG.rotateX(Math.PI / 2);
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) { mesh(ringG, MAT.iron, -10 + c * 4.6, Yk + 0.09, -30 - r * 6, scene, false); }
+  const ringG = new THREE.TorusGeometry(0.3, 0.045, 6, 18); ringG.rotateX(Math.PI / 2);
+  for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) { mesh(ringG, MAT.iron, -10 + c * 4.6, Yk + 0.02, -30 - r * 6, scene, false); }
   for (let i = 0; i < 8; i++) { const x = -12 + i * 3.9; box(2.4, 2.2, 1.6, MAT.marble, x, Yk, -55, {}); }
   for (let i = 0; i < 8; i++) {
     const x = -12 + i * 3.9; box(0.8, 5, 0.8, MAT.white, x, Yk, -60, {});
@@ -1152,7 +1195,7 @@ function buildHeichal() {
     flameSprite(mx, F + 3.35, mz + z * 1, scene, 0.28);
     // western lamp leans toward the centre (Menachos 98b)
   }
-  menorahLight = pointLight(0xffb066, 120, 60, mx, F + 5, mz, false);
+  menorahLight = pointLight(0xffb066, 45, 40, mx, F + 5, mz, false);
   // Shulchan (north) with the 12 loaves of Lechem HaPanim in two stacks of six
   const tx = -84, tz = -6.5;
   box(1, 1.5, 2, MAT.gold, tx, F, tz, {});
@@ -1178,7 +1221,7 @@ function buildHeichal() {
   for (let i = 0; i < rp.count; i++) { const v = new THREE.Vector3().fromBufferAttribute(rp, i); const n = 1 + (fbm(v.x * 2 + 5, v.z * 2 + v.y) - 0.5) * 0.5; rp.setXYZ(i, v.x * 4.2 * n, Math.max(-0.2, v.y) * 0.4, v.z * 3.6 * n); }
   rock.computeVertexNormals(); mesh(rock, MAT.rock, -109, F - 0.12, 0);
   pointLight(0xffd9a0, 30, 40, -109, F + 25, 0, false);
-  pointLight(0xffc77a, 40, 70, -70, F + 20, 0, false);
+  pointLight(0xffc77a, 110, 90, -76, F + 37, 0, false);   // high under the ceiling: a soft glow over the gold walls
 }
 
 
@@ -1206,6 +1249,7 @@ function buildCity() {
   for (let i = 0; i < 30; i++) { const z0 = 300 - (i + 1) * 1.5, z1 = 300 - i * 1.5; batchBox(-95, -65, H.city - 2, stepsY((z0 + z1) / 2), z0, z1, 'white', 6); }
   // plaza with mikvaos for the pilgrims
   batchBox(-140, -20, H.city - 3, H.city, 300, 342, 'pave', 12);
+  batchBox(-140, -95, H.city - 3, H.city, 256, 300, 'pave', 12); batchBox(-65, -20, H.city - 3, H.city, 256, 300, 'pave', 12);   // paving along the Southern Wall
   for (const [x, z] of [[-130, 306], [-30, 306], [-30, 334]]) {
     boxE(x - 5, x + 5, H.city, H.city + 1, z - 3, z + 3, MAT.white, {});
     const w = mesh(new THREE.PlaneGeometry(8, 4), MAT.water, x, H.city + 0.7, z, scene, false); w.rotation.x = -Math.PI / 2;
@@ -1235,10 +1279,18 @@ function buildCity() {
     }
   }
   // the Shiloach pool (Yochanan 9 / Sukkah 4:9 — water drawn for nisuch hamayim)
-  batchBox(-130, -30, POOL_Y - 6, POOL_Y, 905, 975, 'pave', 12);
+  // the pool: paving all round, four steps going down into the water, the floor below (frames, so nothing covers the water)
   const w = CITY.water;
-  for (let k = 1; k <= 4; k++) { const e = 5 - k; batchBox(w[0] - e, w[1] + e, POOL_Y - 8, POOL_Y - k * 0.6, w[2] - e, w[3] + e, 'white', 6); }
-  const water = mesh(new THREE.PlaneGeometry(w[1] - w[0], w[3] - w[2]), MAT.water, (w[0] + w[1]) / 2, POOL_Y - 2.5, (w[2] + w[3]) / 2, scene, false); water.rotation.x = -Math.PI / 2;
+  const ring = (eo, ei, y0, y1, mat) => {
+    const X0 = w[0] - eo, X1 = w[1] + eo, Z0 = w[2] - eo, Z1 = w[3] + eo, x0 = w[0] - ei, x1 = w[1] + ei, z0 = w[2] - ei, z1 = w[3] + ei;
+    batchBox(X0, X1, y0, y1, Z0, z0, mat, 6); batchBox(X0, X1, y0, y1, z1, Z1, mat, 6); batchBox(X0, x0, y0, y1, z0, z1, mat, 6); batchBox(x1, X1, y0, y1, z0, z1, mat, 6);
+  };
+  batchBox(-130, -30, POOL_Y - 6, POOL_Y, 905, w[2] - 4, 'pave', 12); batchBox(-130, -30, POOL_Y - 6, POOL_Y, w[3] + 4, 975, 'pave', 12);
+  batchBox(-130, w[0] - 4, POOL_Y - 6, POOL_Y, w[2] - 4, w[3] + 4, 'pave', 12); batchBox(w[1] + 4, -30, POOL_Y - 6, POOL_Y, w[2] - 4, w[3] + 4, 'pave', 12);
+  for (let k = 1; k <= 4; k++) ring(5 - k, 4 - k, POOL_Y - 8, POOL_Y - k * 0.6, 'white');
+  batchBox(w[0], w[1], POOL_Y - 8, POOL_Y - 3.2, w[2], w[3], 'white', 6);
+  const water = mesh(new THREE.PlaneGeometry(w[1] - w[0] + 4, w[3] - w[2] + 4), MAT.water, (w[0] + w[1]) / 2, POOL_Y - 1.25, (w[2] + w[3]) / 2, scene, false); water.rotation.x = -Math.PI / 2; water.renderOrder = 2;
+  water.userData.static = false;
   for (let x = -124; x <= -36; x += 11) { addColumn(x, 912, POOL_Y, 16, 1.1); addColumn(x, 970, POOL_Y, 16, 1.1); }
   boxE(-130, -30, POOL_Y + 16, POOL_Y + 17.5, 909, 915, MAT.cedar, { collide: false }); boxE(-130, -30, POOL_Y + 16, POOL_Y + 17.5, 967, 973, MAT.cedar, { collide: false });
   // invisible edges of the pool area
@@ -1334,7 +1386,7 @@ function paintFace(g, W, H) {
 
 /* ---------- geometry ---------- */
 const G = {
-  sph: new THREE.SphereGeometry(1, 18, 12), sphLo: new THREE.SphereGeometry(1, 8, 6),
+  sph: new THREE.SphereGeometry(1, 18, 12), sphM: new THREE.SphereGeometry(1, 12, 8), sphLo: new THREE.SphereGeometry(1, 8, 6),
   cyl: new THREE.CylinderGeometry(1, 1, 1, 14), cylLo: new THREE.CylinderGeometry(1, 1, 1, 5),
   box: new THREE.BoxGeometry(1, 1, 1), cone: new THREE.ConeGeometry(1, 1, 12),
   tor: new THREE.TorusGeometry(1, 0.12, 8, 30),
@@ -1342,7 +1394,7 @@ const G = {
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _c = new THREE.Color();
 const gauss = (d2, w) => Math.exp(-d2 / w);
 function headGeometry(o = {}) {
-  const g = QUALITY.high ? new THREE.SphereGeometry(1, 48, 36) : new THREE.SphereGeometry(1, 32, 24); const p = g.attributes.position;
+  const g = QUALITY.high ? new THREE.SphereGeometry(1, 48, 36) : new THREE.SphereGeometry(1, 28, 20); const p = g.attributes.position;
   const jawW = o.jaw ?? 0.26, nose = o.nose ?? 1, fem = o.female ? 1 : 0, age = o.age ?? 0;
   for (let i = 0; i < p.count; i++) {
     let x = p.getX(i), y = p.getY(i), z = p.getZ(i);
@@ -1378,16 +1430,22 @@ function clothGeometry(pts, { seg = 36, ts = 0, tl = Math.PI * 2, fold = 0.035, 
 
 /** collects all parts of a character into one skinned geometry */
 class Body {
-  constructor(boneNames, pivots) { this.boneNames = boneNames; this.pivots = pivots; this.list = []; this.xf = null; }
+  constructor(boneNames, pivots, flatten = null) { this.boneNames = boneNames; this.pivots = pivots; this.list = []; this.xf = null; this.flatten = flatten; }
   add(bone, surf, geo, color, [x, y, z] = [0, 0, 0], [sx, sy, sz] = [1, 1, 1], [rx, ry, rz] = [0, 0, 0]) {
     const g = geo.clone();
+    // parts modelled in head space ride on the head bone (they are already in model space)
+    const headSpace = !!this.xf && bone === 'body' && this.boneNames.includes('head'); if (headSpace) bone = 'head';
     for (const k of Object.keys(g.attributes)) if (!['position', 'normal', 'uv'].includes(k)) g.deleteAttribute(k);
     const n = g.attributes.position.count;
     if (!g.index) g.setIndex([...Array(n).keys()]);
     if (!g.attributes.uv) g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
     g.applyMatrix4(_m.compose(_p.set(x, y, z), _q.setFromEuler(_e.set(rx, ry, rz)), _s.set(sx, sy, sz)));
     if (this.xf) g.applyMatrix4(this.xf);
-    const pv = this.pivots[bone]; if (pv) g.translate(pv[0], pv[1], pv[2]);
+    const pv = headSpace ? null : this.pivots[bone]; if (pv) g.translate(pv[0], pv[1], pv[2]);
+    if (this.flatten && bone === 'body') {          // a real torso is ~0.6 as deep as it is wide
+      const P = g.attributes.position, N = g.attributes.normal;
+      for (let i = 0; i < P.count; i++) { const f = this.flatten(P.getY(i)); P.setZ(i, P.getZ(i) * f); if (N) { const nx = N.getX(i), ny = N.getY(i), nz = N.getZ(i) / f, l = Math.hypot(nx, ny, nz) || 1; N.setXYZ(i, nx / l, ny / l, nz / l); } }
+    }
     const S = SURF[surf] || SURF.cloth, at = tileUV(S.t), bi = this.boneNames.indexOf(bone);
     _c.set(color);
     const col = new Float32Array(n * 3), atl = new Float32Array(n * 4), rep = new Float32Array(n * 2), rm = new Float32Array(n * 2), si = new Uint16Array(n * 4), sw = new Float32Array(n * 4);
@@ -1401,12 +1459,20 @@ class Body {
 }
 
 /* an archetype is a built body that many characters can share */
-const HUMAN_BONES = ['root', 'body', 'armL', 'armR', 'legL', 'legR'];
+const HUMAN_BONES = ['root', 'body', 'armL', 'armR', 'legL', 'legR', 'head', 'foreL', 'foreR'];
+const BONE_PARENT = { foreL: 'armL', foreR: 'armR' };
+const ELBOW = 0.58;
+const NECK_Y = 3.1;
+const torsoFlat = (y) => 1 - 0.2 * smooth(1.1, 2.3, y);
 const ANIMAL_BONES = ['root', 'body', 'head', 'legFL', 'legFR', 'legBL', 'legBR'];
 function instantiate(arch, jitter = 0) {
   const bones = arch.boneNames.map(() => new THREE.Bone());
   bones[0].add(bones[1]);
-  for (let i = 2; i < bones.length; i++) { bones[1].add(bones[i]); bones[i].position.set(...arch.pivots[arch.boneNames[i]]); }
+  for (let i = 2; i < bones.length; i++) {
+    const name = arch.boneNames[i], par = BONE_PARENT[name], pi = par ? arch.boneNames.indexOf(par) : 1;
+    const pv = arch.pivots[name], pp = arch.pivots[arch.boneNames[pi]];
+    bones[pi].add(bones[i]); bones[i].position.set(pv[0] - pp[0], pv[1] - pp[1], pv[2] - pp[2]);
+  }
   const mesh = new THREE.SkinnedMesh(arch.geo, PERSON_MAT);
   mesh.add(bones[0]); mesh.updateMatrixWorld(true); mesh.bind(new THREE.Skeleton(bones));
   mesh.castShadow = true; mesh.receiveShadow = false;
@@ -1426,34 +1492,38 @@ const HEAD_XF = new THREE.Matrix4().makeTranslation(0, HEADN, 0).multiply(new TH
 const HY = HEAD0;
 function buildHuman(spec) {
   const kid = spec.type === 'child', fem = spec.type === 'woman' || spec.girl;
-  const pivots = { root: [0, 0, 0], body: [0, 0, 0], armL: [0.46, 2.78, 0], armR: [-0.46, 2.78, 0], legL: [0.17, 1.72, 0], legR: [-0.17, 1.72, 0] };
-  const B = new Body(HUMAN_BONES, pivots);
+  const pivots = { root: [0, 0, 0], body: [0, 0, 0], armL: [0.44, 2.78, 0], armR: [-0.44, 2.78, 0], legL: [0.17, 1.72, 0], legR: [-0.17, 1.72, 0], head: [0, NECK_Y, 0], foreL: [0.44, 2.78 - ELBOW, 0], foreR: [-0.44, 2.78 - ELBOW, 0] };
+  const B = new Body(HUMAN_BONES, pivots, torsoFlat);
   const skin = spec.skin || '#d9a982', hair = spec.hair || '#2a1d14', seed = rnd() * 10;
   for (const k of ['legL', 'legR']) {
     B.add(k, spec.legMat || 'cloth', new THREE.CylinderGeometry(0.15, 0.11, 1.62, 12), spec.legColor || spec.robe || '#333', [0, -0.8, 0]);
-    if (spec.shoe && !spec.barefoot && !spec.sandals) B.add(k, 'silk', G.sph, spec.shoe, [0, -1.67, 0.12], [0.13, 0.09, 0.3]);
-    else B.add(k, 'skin', G.sph, skin, [0, -1.66, 0.12], [0.12, 0.08, 0.28]);
+    if (spec.shoe && !spec.barefoot && !spec.sandals) B.add(k, 'silk', G.sphM, spec.shoe, [0, -1.67, 0.12], [0.13, 0.09, 0.3]);
+    else B.add(k, 'skin', G.sphM, skin, [0, -1.66, 0.12], [0.12, 0.08, 0.28]);
     if (spec.sandals) { B.add(k, 'leather', G.box, '#6b4a2a', [0, -1.73, 0.12], [0.26, 0.035, 0.6]); for (const dz of [0, 0.2]) B.add(k, 'leather', G.box, '#5a3a20', [0, -1.62, 0.05 + dz], [0.26, 0.03, 0.035]); }
   }
-  const sleeve = spec.sleeve || spec.robe || '#555', sMat = spec.sleeveMat || 'cloth';
-  for (const [k, s] of [['armL', 1], ['armR', -1]]) {
-    B.add(k, sMat, G.sph, sleeve, [0, -0.02, 0], [0.16, 0.18, 0.16]);
-    B.add(k, sMat, clothGeometry([[0.13, -0.05], [0.14, -0.5], [0.16, -0.95], [0.19, -1.12]], { seg: 14, fold: 0.012, seed: seed + s }), sleeve);
-    B.add(k, 'skin', new THREE.CylinderGeometry(0.06, 0.07, 0.2, 8), skin, [0, -1.17, 0]);
-    B.add(k, 'skin', G.sph, skin, [0, -1.31, 0.02], [0.065, 0.1, 0.09]);
-    for (let f = 0; f < 4; f++) B.add(k, 'skin', new THREE.CylinderGeometry(0.016, 0.014, 0.16, 5), skin, [0, -1.45, 0.05 - f * 0.03], [1, 1, 1], [0.15, 0, 0]);
-    B.add(k, 'skin', new THREE.CylinderGeometry(0.02, 0.018, 0.12, 5), skin, [s * 0.05, -1.33, 0.08], [1, 1, 1], [0.5, 0, s * 0.4]);
+  const priest = spec.type === 'kohen' || spec.type === 'kohenGadol';
+  const sleeve = spec.sleeve || (priest ? '#f4f0e6' : spec.robe) || '#8c7552', sMat = spec.sleeveMat || (priest ? 'linen' : 'cloth');
+  for (const [k, f, s] of [['armL', 'foreL', 1], ['armR', 'foreR', -1]]) {
+    // upper arm (shoulder → elbow) and forearm (elbow → hand) on separate bones, so elbows can bend
+    B.add(k, sMat, G.sphM, sleeve, [0, -0.02, 0], [0.16, 0.18, 0.16]);
+    B.add(k, sMat, clothGeometry([[0.13, -0.05], [0.14, -0.34], [0.15, -0.64]], { seg: 14, fold: 0.012, seed: seed + s }), sleeve);
+    B.add(k, sMat, G.sphM, sleeve, [0, -0.6, 0], [0.145, 0.15, 0.145]);
+    B.add(f, sMat, clothGeometry([[0.145, 0.04], [0.16, -0.3], [0.19, -0.54]], { seg: 14, fold: 0.014, seed: seed + s * 2 }), sleeve);
+    B.add(f, 'skin', new THREE.CylinderGeometry(0.055, 0.065, 0.2, 8), skin, [0, -0.59, 0]);
+    B.add(f, 'skin', G.sphM, skin, [0, -0.73, 0.02], [0.06, 0.1, 0.085]);
+    for (let q = 0; q < 4; q++) B.add(f, 'skin', new THREE.CylinderGeometry(0.016, 0.013, 0.15, 5), skin, [0, -0.86, 0.05 - q * 0.03], [1, 1, 1], [0.25, 0, 0]);
+    B.add(f, 'skin', new THREE.CylinderGeometry(0.02, 0.017, 0.11, 5), skin, [s * 0.05, -0.75, 0.08], [1, 1, 1], [0.5, 0, s * 0.4]);
   }
   B.add('body', 'skin', new THREE.CylinderGeometry(0.11, 0.13, 0.32, 12), skin, [0, 3.04, -0.01]);
   // ---- head (built big, scaled to life size) ----
   B.xf = HEAD_XF;
   B.add('body', 'face', headGeometry({ female: fem, age: spec.age || 0, jaw: fem ? 0.32 : 0.24, nose: spec.nose || rr(1.2, 1.6) }), skin, [0, HY, 0]);
   for (const s of [-1, 1]) {
-    B.add('body', 'skin', G.sph, skin, [s * 0.29, HY + 0.02, -0.02], [0.045, 0.11, 0.075], [0, s * 0.2, 0]);
+    B.add('body', 'skin', G.sphM, skin, [s * 0.29, HY + 0.02, -0.02], [0.045, 0.11, 0.075], [0, s * 0.2, 0]);
     const ex = s * 0.105, ey = HY + 0.04, ez = 0.288;
-    B.add('body', 'eye', G.sph, '#f2ede4', [ex, ey, ez], [0.05, 0.036, 0.03]);
-    B.add('body', 'eye', G.sph, spec.iris || pick(['#4a3020', '#3a2616', '#5a4428', '#3e4a3a', '#2e3a50']), [ex, ey - 0.002, ez + 0.026], [0.023, 0.023, 0.008]);
-    B.add('body', 'eye', G.sph, '#050505', [ex, ey - 0.002, ez + 0.031], [0.01, 0.01, 0.004]);
+    B.add('body', 'eye', G.sphM, '#f2ede4', [ex, ey, ez], [0.05, 0.036, 0.03]);
+    B.add('body', 'eye', G.sphLo, spec.iris || pick(['#4a3020', '#3a2616', '#5a4428', '#3e4a3a', '#2e3a50']), [ex, ey - 0.002, ez + 0.026], [0.023, 0.023, 0.008]);
+    B.add('body', 'eye', G.sphLo, '#050505', [ex, ey - 0.002, ez + 0.031], [0.01, 0.01, 0.004]);
     B.add('body', 'skin', new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI * 0.4), skin, [ex, ey + 0.006, ez + 0.002], [0.055, 0.042, 0.036], [0.25, 0, 0]);
     B.add('body', 'skin', new THREE.SphereGeometry(1, 12, 4, 0, Math.PI * 2, Math.PI * 0.7, Math.PI * 0.3), skin, [ex, ey + 0.002, ez + 0.002], [0.053, 0.04, 0.034]);
     B.add('body', 'hair', G.box, spec.brow || spec.beard || hair, [ex + s * 0.01, ey + 0.075, ez + 0.015], [0.1, 0.022, 0.03], [0.2, 0, -s * 0.12]);
@@ -1474,7 +1544,7 @@ function buildHuman(spec) {
     }
     bg.computeVertexNormals();
     B.add('body', 'hair', bg, spec.beard, [0, HY - 0.01, 0.015]);
-    for (const s of [-1, 1]) B.add('body', 'hair', G.sph, spec.beard, [s * 0.255, HY - 0.12, 0.1], [0.06, 0.2, 0.12], [0, 0, s * 0.15]);
+    for (const s of [-1, 1]) B.add('body', 'hair', G.sphM, spec.beard, [s * 0.255, HY - 0.12, 0.1], [0.06, 0.2, 0.12], [0, 0, s * 0.15]);
     B.add('body', 'hair', new THREE.TorusGeometry(0.1, 0.03, 6, 14, Math.PI), spec.beard, [0, HY - 0.15, 0.3], [1.15, 0.8, 1]);
   }
   if (spec.peyos === 'long') { for (const s of [1, -1]) { const pts = []; for (let i = 0; i <= 40; i++) { const a = i * 0.85; pts.push([s * (0.31 + 0.045 * Math.cos(a)), HY + 0.06 - i * 0.022, 0.07 + 0.045 * Math.sin(a)]); } B.tube('body', 'hair', pts, 0.03, hair, 90); } }
@@ -1486,31 +1556,41 @@ function buildHuman(spec) {
   if (TY === 'player') dressHasid(B, spec, seed);
   else if (TY === 'kohen' || TY === 'kohenGadol') dressKohen(B, spec, TY === 'kohenGadol', seed);
   else dressAncient(B, spec, seed, fem);
-  if (spec.lyre) {
+  if (spec.lyre) {   // kinnor, held against the chest
     const wood = '#8a5a2a';
-    B.tube('body', 'leather', [[0.15, 1.9, 0.62], [0.32, 2.35, 0.68], [0.27, 2.85, 0.62]], 0.04, wood);
-    B.tube('body', 'leather', [[-0.15, 1.9, 0.62], [-0.32, 2.35, 0.68], [-0.27, 2.85, 0.62]], 0.04, wood);
-    B.add('body', 'leather', G.box, wood, [0, 1.9, 0.62], [0.34, 0.22, 0.12]);
-    B.add('body', 'leather', G.cyl, wood, [0, 2.85, 0.62], [0.03, 0.66, 0.03], [0, 0, Math.PI / 2]);
-    for (let i = -3; i <= 3; i++) B.add('body', 'eye', G.cylLo, '#efe6cf', [i * 0.065, 2.37, 0.63], [0.006, 0.95, 0.006]);
+    B.tube('body', 'leather', [[0.15, 1.95, 0.5], [0.3, 2.35, 0.56], [0.25, 2.8, 0.5]], 0.035, wood);
+    B.tube('body', 'leather', [[-0.15, 1.95, 0.5], [-0.3, 2.35, 0.56], [-0.25, 2.8, 0.5]], 0.035, wood);
+    B.add('body', 'leather', G.box, wood, [0, 1.95, 0.5], [0.34, 0.2, 0.1]);
+    B.add('body', 'leather', G.cyl, wood, [0, 2.8, 0.5], [0.028, 0.6, 0.028], [0, 0, Math.PI / 2]);
+    for (let i = -3; i <= 3; i++) B.add('body', 'eye', G.cylLo, '#efe6cf', [i * 0.06, 2.38, 0.51], [0.005, 0.85, 0.005]);
   }
-  if (spec.flute) B.add('armR', 'leather', G.cyl, '#c8a878', [0.04, -1.3, 0.45], [0.022, 0.8, 0.022], [1.1, 0, 0]);
-  if (spec.trumpet) { B.add('armR', 'metal', G.cyl, '#e8e8ec', [0, -1.3, 0.85], [0.045, 1.8, 0.045], [Math.PI / 2, 0, 0]); B.add('armR', 'metal', G.cone, '#e8e8ec', [0, -1.3, 1.8], [0.15, 0.32, 0.15], [-Math.PI / 2, 0, 0]); }
+  if (spec.nevel) {   // the larger nevel, resting on the hip
+    const wood = '#6e4420';
+    B.tube('body', 'leather', [[0.05, 1.7, 0.45], [0.42, 2.3, 0.62], [0.35, 3.25, 0.6]], 0.045, wood, 16);
+    B.tube('body', 'leather', [[0.05, 1.7, 0.45], [-0.18, 2.6, 0.55], [0.35, 3.25, 0.6]], 0.03, wood, 16);
+    for (let i = 0; i < 9; i++) { const t = (i + 1) / 10; B.add('body', 'eye', G.cylLo, '#efe6cf', [0.05 + t * 0.3 - 0.12 * Math.sin(t * Math.PI), 1.7 + t * 1.55 - 0.1, 0.53], [0.004, 0.55 * Math.sin(t * Math.PI) + 0.1, 0.004], [0, 0, -0.35]); }
+  }
+  if (spec.flute) B.add('foreR', 'leather', G.cyl, '#c8a878', [0.02, -0.74, 0.32], [0.02, 0.75, 0.02], [1.35, 0, 0.1]);
+  if (spec.trumpet) { B.add('foreR', 'metal', G.cyl, '#e8e8ec', [0, -0.74, 0.85], [0.04, 1.75, 0.04], [Math.PI / 2, 0, 0]); B.add('foreR', 'metal', G.cone, '#e8e8ec', [0, -0.74, 1.78], [0.15, 0.32, 0.15], [-Math.PI / 2, 0, 0]); }
+  if (spec.log) B.add('body', 'leather', new THREE.CylinderGeometry(0.13, 0.16, 1.9, 9), '#7a5030', [-0.32, 3.0, 0.05], [1, 1, 1], [Math.PI / 2 - 0.2, 0, 0.1]);   // wood for the Ma'arachah
+  if (spec.drum) { B.add('foreL', 'leather', new THREE.CylinderGeometry(0.36, 0.36, 0.1, 20), '#8a6a3a', [0.0, -0.78, 0.12], [1, 1, 1], [Math.PI / 2, 0, 0]); B.add('foreL', 'skin', new THREE.CylinderGeometry(0.34, 0.34, 0.11, 20), '#e8d8b0', [0.0, -0.78, 0.12], [1, 1, 1], [Math.PI / 2, 0, 0]); }
+  if (spec.cymbals) for (const f of ['foreL', 'foreR']) B.add(f, 'metal', new THREE.SphereGeometry(0.2, 16, 6, 0, Math.PI * 2, 0, 0.5), '#d8a84a', [0, -0.8, 0.06], [1, 0.35, 1], [0, 0, f === 'foreL' ? -Math.PI / 2 : Math.PI / 2]);
+  if (spec.torch) { B.add('foreR', 'leather', G.cyl, '#4a3018', [0, -0.95, 0.06], [0.045, 0.75, 0.045]); B.add('foreR', 'cloth', G.cyl, '#2a1a0c', [0, -1.36, 0.06], [0.08, 0.16, 0.08]); }
   if (spec.basket) {
-    B.add('armL', 'leather', new THREE.CylinderGeometry(0.4, 0.28, 0.38, 14, 1, true), spec.basket, [0.05, -1.7, 0]);
-    B.add('armL', 'leather', new THREE.CircleGeometry(0.28, 14), spec.basket, [0.05, -1.89, 0], [1, 1, 1], [Math.PI / 2, 0, 0]);
-    for (let i = 0; i < 7; i++) B.add('armL', 'skin', G.sphLo, ['#7a2040', '#d8b040', '#6a8a30', '#5a2a5a', '#c84a2a'][i % 5], [0.05 + Math.cos(i) * 0.2, -1.56, Math.sin(i) * 0.2], [0.1, 0.1, 0.1]);
-    for (const s of [-1, 1]) { B.add('armL', 'cloth', G.sphLo, '#e9e6e0', [0.05 + s * 0.36, -1.58, 0.05], [0.08, 0.07, 0.13]); B.add('armL', 'cloth', G.sphLo, '#e9e6e0', [0.05 + s * 0.36, -1.51, 0.15], [0.05, 0.05, 0.05]); }
+    B.add('foreL', 'leather', new THREE.CylinderGeometry(0.4, 0.28, 0.38, 14, 1, true), spec.basket, [0.05, -1.12, 0]);
+    B.add('foreL', 'leather', new THREE.CircleGeometry(0.28, 14), spec.basket, [0.05, -1.31, 0], [1, 1, 1], [Math.PI / 2, 0, 0]);
+    for (let i = 0; i < 7; i++) B.add('foreL', 'skin', G.sphLo, ['#7a2040', '#d8b040', '#6a8a30', '#5a2a5a', '#c84a2a'][i % 5], [0.05 + Math.cos(i) * 0.2, -0.98, Math.sin(i) * 0.2], [0.1, 0.1, 0.1]);
+    for (const q of [-1, 1]) { B.add('foreL', 'cloth', G.sphLo, '#e9e6e0', [0.05 + q * 0.36, -1.0, 0.05], [0.08, 0.07, 0.13]); B.add('foreL', 'cloth', G.sphLo, '#e9e6e0', [0.05 + q * 0.36, -0.93, 0.15], [0.05, 0.05, 0.05]); }
   }
   if (spec.doveCage) {
-    B.add('armR', 'leather', new THREE.CylinderGeometry(0.24, 0.27, 0.38, 12, 1, true), '#a8854a', [0, -1.55, 0.12]);
-    B.add('armR', 'cloth', G.sphLo, '#c9c4bc', [0, -1.45, 0.12], [0.09, 0.08, 0.14]); B.add('armR', 'cloth', G.sphLo, '#8a8580', [0.1, -1.43, 0.09], [0.08, 0.07, 0.13]);
+    B.add('foreR', 'leather', new THREE.CylinderGeometry(0.24, 0.27, 0.38, 12, 1, true), '#a8854a', [0, -0.97, 0.12]);
+    B.add('foreR', 'cloth', G.sphLo, '#c9c4bc', [0, -0.87, 0.12], [0.09, 0.08, 0.14]); B.add('foreR', 'cloth', G.sphLo, '#8a8580', [0.1, -0.85, 0.09], [0.08, 0.07, 0.13]);
   }
   const extras = [];
   if (spec.tzitzText) extras.push((pv) => {   // the Tzitz: "Kodesh La-Hashem", written קֹדֶשׁ לַה׳ out of respect
     const tex = tzitzTex || (tzitzTex = textTex(['קֹדֶשׁ לַה׳'], { w: 512, h: 96, bg: '#d8a94a', color: '#4a3006', font: '900 64px "Frank Ruhl Libre", serif' }));
     const tz = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.09, 24, 1, true, -0.72, 1.44), new THREE.MeshStandardMaterial({ map: tex, metalness: 0.75, roughness: 0.3, side: THREE.DoubleSide }));
-    tz.position.set(0, HEADN + 0.2 * HEADK, 0.012); tz.scale.setScalar(HEADK); pv.body.add(tz);
+    tz.position.set(0, HEADN + 0.2 * HEADK - NECK_Y, 0.012); tz.scale.setScalar(HEADK); pv.head.add(tz);
   });
   if (spec.lamb) extras.push((pv) => { const a = instantiate(animalArch('lamb')); a.root.scale.setScalar(0.5); a.root.position.set(0, 2.62, -0.12); a.root.rotation.y = Math.PI / 2; pv.body.add(a.root); });
   const scale = (spec.scale || 1) * (kid ? 0.64 : 1) * (fem && !kid ? 0.94 : 1);
@@ -1669,28 +1749,69 @@ function personLabel(text, sub = '') {
     g.fillStyle = '#f3d58a'; g.textAlign = 'center'; g.font = '700 40px "Frank Ruhl Libre", serif'; g.fillText(text, w / 2, sub ? 58 : 76);
     if (sub) { g.fillStyle = '#e8dcc0'; g.font = '500 26px Inter, sans-serif'; g.fillText(sub, w / 2, 94); }
   });
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true }));
-  sp.scale.set(4.6, 1.15, 1); sp.position.y = 4.6; return sp;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false, transparent: true, sizeAttenuation: false }));   // same size on screen near or far
+  sp.scale.set(0.19, 0.0475, 1); sp.position.y = 4.6; return sp;
 }
 
+/* poses: walking, idle (breathing, weight-shift, hands clasped / folded), talking with gestures,
+   playing instruments in time with the music, dancing, bowing, shuckling; the head turns to look */
+const hitCurve = (b) => { const f = b - Math.floor(b); return Math.exp(-f * 9); };
 function animatePerson(p, dt, speed, extra = {}) {
   if (p.isAnimal) return animateAnimal(p, dt, speed);
   if (p.gltf) return animateGLTF(p, dt, speed);
+  const P = p.pivots, sp = p.spec, now = performance.now() / 1000;
   const s = Math.min(1, speed / 3);
   p.phase += dt * (2.2 + speed * 1.15);
-  const sw = Math.sin(p.phase) * 0.48 * s;
-  const { armL, armR, legL, legR, body } = p.pivots, sp = p.spec;
-  legL.rotation.x = sw; legR.rotation.x = -sw;
-  if (sp.basket) { armL.rotation.x = Math.PI; armL.rotation.z = -0.25; }
-  else if (!extra.playing && !sp.trumpet) { armL.rotation.x = -sw * 0.6; armL.rotation.z = 0.06; }
-  if (!extra.playing && !sp.trumpet && !sp.flute) { armR.rotation.x = sp.leading ? -0.5 : sw * 0.6; armR.rotation.z = -0.06; }
-  if (extra.playing) { armL.rotation.x = -0.9; armR.rotation.x = -0.9 + Math.sin(p.phase * 3) * 0.15; armL.rotation.z = -0.35; armR.rotation.z = 0.35; }
-  if (sp.flute) { armR.rotation.x = -1.2; armR.rotation.z = 0.45; if (!sp.basket) { armL.rotation.x = -1.1; armL.rotation.z = -0.3; } }
-  if (sp.trumpet) { armR.rotation.x = extra.blowing ? -1.45 : -0.4; armL.rotation.x = extra.blowing ? -1.3 : -0.2; armL.rotation.z = extra.blowing ? -0.5 : 0; }
-  body.position.y = Math.abs(Math.cos(p.phase)) * 0.05 * s;
-  body.rotation.y = Math.sin(p.phase) * 0.05 * s;
-  body.rotation.x = extra.bow ? 0.45 : (extra.shuckle ? Math.sin(performance.now() / 380 + p.phase) * 0.12 : 0.03 * s);
-  if (s < 0.05 && !extra.playing && !sp.basket) { const b = Math.sin(performance.now() / 900 + p.phase) * 0.03; armL.rotation.x = b; if (!sp.leading && !sp.flute && !sp.trumpet) armR.rotation.x = -b; body.rotation.z = Math.sin(performance.now() / 2100 + p.phase) * 0.015; }
+  const sw = Math.sin(p.phase) * 0.46 * s, idle = s < 0.05;
+  const br = Math.sin(now * 1.55 + p.phase), ws = Math.sin(now * 0.33 + p.phase * 1.7);
+  // defaults: walking / standing
+  let aL = [-sw * 0.55, 0, 0.07], aR = [sw * 0.55, 0, -0.07], fL = -0.18 - Math.max(0, sw) * 0.35, fR = -0.18 - Math.max(0, -sw) * 0.35, fLz = 0, fRz = 0;
+  let bx = 0.03 * s, by = Math.sin(p.phase) * 0.06 * s, bz = 0, bpy = Math.abs(Math.cos(p.phase)) * 0.05 * s, lgL = sw, lgR = -sw, lgz = 0;
+  if (idle) {
+    bz = ws * 0.022; bpy = br * 0.006; bx = 0.012 + br * 0.005; lgz = ws * 0.02;
+    const pose = p.pose ?? (p.pose = Math.floor((p.phase * 7.13) % 4));
+    if (pose === 1) { aL = [0.32, 0, -0.22]; aR = [0.32, 0, 0.22]; fL = -0.5; fR = -0.5; }            // hands behind the back
+    else if (pose === 2) { aL = [-0.25, 0, -0.18]; aR = [-0.25, 0, 0.18]; fL = -1.05; fR = -1.0; }   // hands folded in front
+    else { aL = [0.03 + br * 0.02, 0, 0.08 + ws * 0.015]; aR = [0.03 - br * 0.02, 0, -0.08 + ws * 0.015]; fL = -0.16; fR = -0.2; }
+  }
+  if (extra.gesture) {   // talking: the speaker's hands move with the words
+    const g = extra.gesture, t = now * 2.4 + p.phase;
+    aR = [-0.32 - 0.18 * Math.sin(t * 0.7) * g, 0, 0.12]; fR = -1.0 - 0.35 * Math.sin(t) * g; fRz = 0.25 * Math.sin(t * 1.3) * g;
+    if (Math.sin(t * 0.31) > 0.2) { aL = [-0.25, 0, -0.1]; fL = -0.9 - 0.25 * Math.sin(t * 1.1 + 1) * g; }
+  }
+  if (sp.leading) { aR = [-0.45, 0, -0.05]; fR = -0.35; }
+  if (sp.lamb) { aL = [-0.3, 0, 0.35]; fL = -2.5; aR = [-0.3, 0, -0.35]; fR = -2.5; }
+  if (sp.log) { aR = [-0.12, 0, 0.3]; fR = -2.55; }
+  if (sp.doveCage) { fR = -1.3; aR = [-0.1, 0, -0.12]; }
+  if (sp.basket) { aL = [-Math.PI + 0.12, 0, -0.1]; fL = -0.35; }
+  const beat = extra.beat ?? (now * 2);
+  if (sp.lyre || sp.nevel) {
+    if (extra.playing) { aL = [-0.45, 0, -0.1]; fL = -1.25; aR = [-0.42, 0, 0.32]; fR = -1.25 + 0.12 * Math.sin(now * 9 + p.phase); fRz = 0.15 * Math.sin(now * 4.5); }
+    else { aL = [-0.4, 0, -0.08]; fL = -1.2; aR = [-0.3, 0, 0.2]; fR = -1.0; }
+  }
+  if (sp.flute) { aR = [-0.75, 0, 0.32]; fR = -1.55; aL = [-0.7, 0, -0.3]; fL = -1.5; }
+  if (sp.drum) { aL = [-0.55, 0, -0.25]; fL = -1.1; const h = extra.playing ? hitCurve(beat) : 0; aR = [-0.45 - h * 0.1, 0, 0.18]; fR = -0.85 - (1 - h) * 0.45; }
+  if (sp.cymbals) { const h = extra.playing ? hitCurve(beat / 2) : 0.5; aL = [-0.6, 0, -0.08 - 0.22 * h]; aR = [-0.6, 0, 0.08 + 0.22 * h]; fL = -1.15; fR = -1.15; fLz = -0.4 + 0.3 * (1 - h); fRz = 0.4 - 0.3 * (1 - h); }
+  if (sp.trumpet) { if (extra.blowing) { aR = [-1.25, 0, 0.12]; fR = -0.25; aL = [-1.15, 0, -0.2]; fL = -0.45; } else { aR = [-0.35, 0, -0.05]; fR = -0.6; } }
+  if (extra.clap) { const h = hitCurve(beat); aL = [-0.22, 0, -0.04 - 0.12 * h]; aR = [-0.22, 0, 0.04 + 0.12 * h]; fL = -1.75; fR = -1.75; fLz = -0.45 * h - 0.1; fRz = 0.45 * h + 0.1; bpy = Math.abs(Math.sin(beat * Math.PI)) * 0.03; }
+  if (extra.dance) {   // the dance of Simchas Beis HaSho'eivah — arms on each other's shoulders, stamping on the beat
+    const b = extra.beat, ph = b * Math.PI, step = Math.sin(ph);
+    const sw2 = Math.sin(ph * 0.5) * 0.12;   // holding hands with the neighbours, arms swinging with the step
+    if (sp.torch) { aR = [-2.7 + sw2, 0, -0.15]; fR = -0.2 - 0.25 * Math.max(0, Math.sin(ph * 0.5)); aL = [-0.12 + sw2, 0, 0.82]; fL = -0.18; }
+    else { aL = [-0.12 + sw2, 0, 0.82]; aR = [-0.12 + sw2, 0, -0.82]; fL = -0.18; fR = -0.18; }
+    lgL = Math.max(0, step) * 0.55 - 0.05; lgR = Math.max(0, -step) * 0.55 - 0.05;
+    bpy = Math.abs(Math.sin(ph)) * 0.14; bx = -0.05 + 0.06 * Math.abs(Math.cos(ph)); by = Math.sin(ph * 0.5) * 0.12; bz = 0;
+  }
+  P.legL.rotation.set(lgL, 0, -lgz); P.legR.rotation.set(lgR, 0, -lgz);
+  P.armL.rotation.set(aL[0], aL[1], aL[2]); P.armR.rotation.set(aR[0], aR[1], aR[2]);
+  if (P.foreL) { P.foreL.rotation.set(fL, 0, fLz); P.foreR.rotation.set(fR, 0, fRz); }
+  P.body.position.y = bpy; P.body.rotation.y = by; P.body.rotation.z = bz;
+  P.body.rotation.x = extra.bow ? 0.5 : extra.shuckle ? 0.04 + Math.sin(now * 2.6 + p.phase) * 0.13 : bx;
+  if (P.head) {   // looking around, at the speaker, at you
+    const ly = clamp(p.lookY || 0, -1.15, 1.15), lp = p.lookP || 0;
+    p.hy = lerp(p.hy || 0, ly, Math.min(1, dt * 5)); p.hp = lerp(p.hp || 0, lp, Math.min(1, dt * 5));
+    P.head.rotation.set(p.hp + (extra.nod ? Math.sin(now * 5 + p.phase) * 0.07 * extra.nod : 0) + (extra.dance ? Math.sin(extra.beat * Math.PI) * 0.08 : 0) - (extra.bow ? 0.1 : 0), p.hy, extra.dance ? Math.sin(extra.beat * Math.PI * 0.5) * 0.08 : 0);
+  }
 }
 
 /* =====================================================================
@@ -1716,10 +1837,10 @@ function poolPick(kind, n, extra) { const key = kind + JSON.stringify(extra || {
 function person(kind, n = 6, extra) { return instantiate(poolPick(kind, n, extra), 0.04); }
 function unique(spec) { return instantiate(buildHuman(spec)); }
 
-function spawnNPC(pp, x, z, { zone = null, route = null, speed = 1.6, label = null, lines = 'israelite', facing = 0, still = false, playing = false, follow = null, offset = null, who = '', maxX = null } = {}) {
-  const n = { p: pp, x, z, y: groundHeight(x, z), yaw: facing, tx: x, tz: z, wait: rr(0, 4), zone, route, ri: 0, speed: speed * rr(0.88, 1.12), lines, still, playing, follow, offset, who, label, maxX, idx: npcs.length, acc: 0 };
+function spawnNPC(pp, x, z, { zone = null, route = null, speed = 1.6, label = null, lines = 'israelite', facing = 0, still = false, playing = false, follow = null, offset = null, who = '', maxX = null, fixedY = null } = {}) {
+  const n = { p: pp, x, z, y: fixedY ?? groundHeight(x, z), yaw: facing, tx: x, tz: z, wait: rr(0, 4), zone, route, ri: 0, speed: speed * rr(0.88, 1.12), lines, still, playing, follow, offset, who, label, maxX, fixedY, idx: npcs.length, acc: 0, glanceT: rr(0, 5), glance: 0 };
   pp.root.position.set(x, n.y, z); pp.root.rotation.y = facing; scene.add(pp.root);
-  if (label) { n.labelKey = label; n.labelSprite = personLabel(T(label), LANG === 'en' ? '' : S[label].en); n.labelSprite.position.y = 4.6 / (pp.scale || 1); pp.root.add(n.labelSprite); }
+  if (label) { n.labelKey = label; n.labelSprite = personLabel(T(label), LANG === 'en' ? '' : S[label].en); n.labelSprite.position.y = 4.4 / (pp.scale || 1); pp.root.add(n.labelSprite); }
   if (route) { n.tx = route[0][0]; n.tz = route[0][1]; }
   npcs.push(n); return n;
 }
@@ -1728,10 +1849,13 @@ function blockedAt(x, z, y, r = 0.6) {
   for (const c of nearColliders(x, z, r + 1)) { if (c.top <= y + 0.55 || c.bottom > y + 3) continue; if (x > c.x0 - r && x < c.x1 + r && z > c.z0 - r && z < c.z1 + r) return true; }
   return false;
 }
+/* places people keep out of: the dancing circle and the musicians on the steps */
+const NO_GO = [];
+const inNoGo = (x, z) => NO_GO.some(c => (x - c.x) ** 2 + (z - c.z) ** 2 < c.r * c.r);
 function pickTarget(n) {
   for (let i = 0; i < 12; i++) {
     const r = n.zone; const x = rr(r[0], r[1]), z = rr(r[2], r[3]); const y = groundHeight(x, z, n.y);
-    if (Math.abs(y - n.y) < 1.2 && !blockedAt(x, z, y)) { n.tx = x; n.tz = z; return; }
+    if (Math.abs(y - n.y) < 1.2 && !blockedAt(x, z, y) && !inNoGo(x, z)) { n.tx = x; n.tz = z; return; }
   }
 }
 const ropes = [];
@@ -1744,38 +1868,60 @@ function leadAnimal(owner, kind, side = 1, back = 2.4) {
 }
 
 let kgNPC = null, bikLead = null;
-const NPC_FAR = QUALITY.high ? 300 : 170, SHADOW_NEAR = QUALITY.high ? 55 : 32;
+const NPC_FAR = QUALITY.high ? 300 : 150, SHADOW_NEAR = QUALITY.high ? 55 : 32;
+/* Simchas Beis HaSho'eivah (Sukkah 5:4): the Leviim play on the fifteen steps, the Chassidim and men of deeds dance with torches */
+const BAND = { x: 50, y: 10, z: 0 }, DANCE = { x: 96, z: 0, r: 4.7 };
+const groups = [], dancers = [], bandMembers = [];
+let torchFlames = null;
 
 function populate() {
   buildPeopleMaterials();
   rnd = mulberry32(613);
-  const many = QUALITY.high ? 1 : 0.55, V = QUALITY.high ? 10 : 6;
+  NO_GO.push({ x: DANCE.x, z: DANCE.z, r: DANCE.r + 4.5 }, { x: 47, z: 0, r: 8.5 });
+  const many = QUALITY.high ? 1 : 0.6, V = QUALITY.high ? 10 : 6;
+  const freeSpot = (zone) => { let x, z, y, t = 0; do { x = rr(zone[0], zone[1]); z = rr(zone[2], zone[3]); y = groundHeight(x, z); } while ((blockedAt(x, z, y) || inNoGo(x, z)) && t++ < 25); return [x, z]; };
   const crowd = (zone, count, mix = [0.55, 0.32, 0.13], lines) => {
     for (let i = 0; i < Math.round(count * many); i++) {
       const k = rnd(); const kind = k < mix[0] ? 'man' : k < mix[0] + mix[1] ? 'woman' : 'child';
-      const pp = person(kind, kind === 'man' ? V + 4 : V); let x, z, y, t = 0;
-      do { x = rr(zone[0], zone[1]); z = rr(zone[2], zone[3]); y = groundHeight(x, z); } while (blockedAt(x, z, y) && t++ < 20);
+      const pp = person(kind, kind === 'man' ? V + 4 : V); const [x, z] = freeSpot(zone);
       const n = spawnNPC(pp, x, z, { zone, lines: lines || (kind === 'man' ? 'israelite' : kind), speed: kind === 'child' ? 2 : 1.5, facing: rr(0, 6.28) });
-      n.wait = rr(0, 6); if (kind === 'man' && rnd() < 0.3) n.shuckle = true;
+      n.wait = rr(0, 6); if (kind === 'man' && rnd() < 0.25) n.shuckle = true;
     }
   };
-  crowd([-200, 200, 95, 200], 40); crowd([195, 218, -190, 190], 16); crowd([-200, 200, -205, -100], 20); crowd([-212, -175, -190, 190], 10);
-  crowd([88, 136, -24, 24], 20); crowd([60, 170, -22, 22], 14, [0.4, 0.45, 0.15]);
+  /* people standing and talking together */
+  const group = (zone, size, mix = 0.75) => {
+    const [cx, cz] = freeSpot(zone), G = { cx, cz, members: [], speaker: 0, t: rr(2, 5) };
+    for (let i = 0; i < size; i++) {
+      const a = i / size * Math.PI * 2 + rr(-0.25, 0.25), r = rr(1.05, 1.4) + size * 0.08, x = cx + Math.sin(a) * r, z = cz + Math.cos(a) * r;
+      const kind = rnd() < mix ? 'man' : 'woman';
+      const n = spawnNPC(person(kind, kind === 'man' ? V + 4 : V), x, z, { still: true, lines: kind === 'man' ? 'israelite' : 'woman', facing: Math.atan2(cx - x, cz - z) + rr(-0.2, 0.2) });
+      n.group = G; G.members.push(n);
+    }
+    groups.push(G);
+  };
+  crowd([-200, 200, 95, 200], 46); crowd([195, 218, -190, 190], 16); crowd([-200, 200, -205, -100], 22); crowd([-212, -175, -190, 190], 10);
+  crowd([60, 170, -55, 55], 26, [0.4, 0.45, 0.15]);
   crowd([90, 134, -58, -28], 7, [0.2, 0.7, 0.1]); crowd([90, 134, 28, 58], 7, [0.2, 0.7, 0.1]);
   crowd([30, 39.5, -60, 60], 18, [1, 0, 0]);
   crowd([-135, -25, 302, 336], 24); crowd([-87, -73, 345, 880], 40, [0.5, 0.35, 0.15]);
+  const nG = QUALITY.high ? 1 : 0.6;
+  for (let i = 0; i < Math.round(9 * nG); i++) group([-190, 190, 110, 200], 2 + (i % 3));
+  for (let i = 0; i < Math.round(4 * nG); i++) group([-200, 200, -200, -110], 2 + (i % 3));
+  for (let i = 0; i < Math.round(4 * nG); i++) group([120, 172, -55, 55], 2 + (i % 2), 0.4);
+  for (let i = 0; i < Math.round(4 * nG); i++) group([-130, -30, 304, 334], 3);
+  group([30, 39, -55, -20], 3, 1); group([30, 39, 20, 55], 2, 1);
   for (let i = 0; i < Math.round(16 * many); i++) {
     const zone = pick([[-34, 24, 18, 60], [-34, 24, -50, -24], [19, 26, -60, 60], [-145, -60, -60, -42], [-145, -60, 42, 60]]);
-    let x, z, y, t = 0; do { x = rr(zone[0], zone[1]); z = rr(zone[2], zone[3]); y = groundHeight(x, z); } while (blockedAt(x, z, y) && t++ < 20);
+    const [x, z] = freeSpot(zone);
     spawnNPC(person('kohen', V), x, z, { zone, lines: 'kohen', speed: 1.9 });
   }
   const rampRoute = [[2, 46], [2, 13], [12, 0], [-6, -12], [2, 13], [2, 46], [-12, 52]];
-  for (let i = 0; i < 4; i++) { const n = spawnNPC(person('kohen', V), rampRoute[i][0], rampRoute[i][1], { route: rampRoute, lines: 'kohen', speed: 1.7 }); n.ri = (i + 1) % rampRoute.length; [n.tx, n.tz] = rampRoute[n.ri]; }
+  for (let i = 0; i < 4; i++) { const n = spawnNPC(i % 2 ? person('kohen', V) : instantiate(poolPick('kohen', 2, { log: true })), rampRoute[i][0], rampRoute[i][1], { route: rampRoute, lines: 'kohen', speed: 1.7 }); n.ri = (i + 1) % rampRoute.length; [n.tx, n.tz] = rampRoute[n.ri]; }
   // Leviim on the Duchan, facing the people
   for (let i = 0; i < 12; i++) {
     const lyre = i % 3 !== 2;
     const pp = instantiate(poolPick('man', 3, { type: 'levi', lyre, robe: '#ece4d2', mantle: null, sudar: null, cap: '#ece4d2', belt: '#5a3a22' }));
-    spawnNPC(pp, 28.5, -16.5 + i * 3, { still: true, playing: lyre, lines: 'levi', facing: Math.PI / 2, label: i === 5 ? 'lbl_levites' : null });
+    spawnNPC(pp, 28.5, -16.5 + i * 3, { still: true, playing: lyre, lines: 'levi', facing: Math.PI / 2, label: i === 5 ? 'lbl_levites' : null }).duchan = true;
   }
   // two kohanim with silver trumpets by the Shulchan of the fats, west of the Kevesh (Tamid 7:3)
   for (const z of [22, 26]) spawnNPC(instantiate(poolPick('kohen', 2, { trumpet: true })), -9, z, { still: true, lines: 'trumpeter', facing: Math.PI / 2, label: z === 22 ? 'lbl_trumpets' : null }).trumpeter = true;
@@ -1792,12 +1938,47 @@ function populate() {
     { type: 'child', girl: true, skin: '#e2b896', hair: '#3b2717', robe: '#7a2a32', veil: '#efe8d8', sandals: true },
     { type: 'child', skin: '#e2b896', hair: '#3b2717', robe: '#efe8d8', cap: '#efe8d8', sandals: true, peyos: 'short' },
   ];
-  fam.forEach((sp, i) => spawnNPC(unique(sp), 64 + i * 2.2, -20 + (i % 2) * 2, { still: i < 3, zone: i >= 3 ? [60, 76, -26, -14] : null, lines: i >= 3 ? 'child' : 'family', facing: -Math.PI / 2, label: i === 0 ? 'lbl_family' : null }));
+  const famG = { cx: 66, cz: -20, members: [], speaker: 0, t: 3 };
+  fam.forEach((sp, i) => { const n = spawnNPC(unique(sp), 64 + i * 2.2, -20 + (i % 2) * 2, { still: i < 3, zone: i >= 3 ? [60, 76, -30, -14] : null, lines: i >= 3 ? 'child' : 'family', facing: -Math.PI / 2, label: i === 0 ? 'lbl_family' : null }); if (i < 3) { n.group = famG; famG.members.push(n); n.yaw = Math.atan2(famG.cx - n.x, famG.cz - n.z); } });
+  groups.push(famG);
+
+  /* ---- Simchas Beis HaSho'eivah: the Leviim's band on the fifteen steps ---- */
+  const kit = [{ lyre: true }, { nevel: true }, { flute: true }, { drum: true }, { lyre: true }, { cymbals: true }, { lyre: true }, { flute: true }, { lyre: true }, { nevel: true }];
+  const spots = [];
+  for (const a of [38, 56, 74]) for (const sg of [1, -1]) spots.push([6.1, sg * a]);
+  for (const a of [52, 72]) for (const sg of [1, -1]) spots.push([3.6, sg * a]);
+  spots.forEach(([r, deg], i) => {
+    const a = deg * Math.PI / 180, x = NIK.x + Math.cos(a) * r, z = NIK.z + Math.sin(a) * r;
+    const pp = instantiate(poolPick('man', 4, { type: 'levi', ...kit[i], robe: '#ece4d2', mantle: null, sudar: null, cap: '#ece4d2', belt: pick(['#5a3a22', '#2a4a9a', '#6a2462']) }));
+    const n = spawnNPC(pp, x, z, { still: true, lines: 'levi', facing: Math.PI / 2 + a * 0.35, label: i === 0 ? 'lbl_band' : null });
+    n.band = true; bandMembers.push(n);
+  });
+  /* ---- the dancers, with torches in their hands ---- */
+  const nD = QUALITY.high ? 12 : 10;
+  for (let i = 0; i < nD; i++) {
+    const torch = i % 3 === 0;
+    const sp = { type: 'israelite', skin: pick(SKINS), hair: pick(HAIRS), beard: pick(['#d9d4cc', '#a8a39a', '#8a8279', '#3b2717', '#e8e4dc']), beardLen: rr(1.2, 1.9), age: rr(0.4, 1), robe: pick(['#efe8d8', '#d8ccb0', '#c2a77a', '#e6dcc4']), mantle: '#f4efe2', stripe: pick(['#2a4a9a', '#3b2c1c']), sudar: pick(['#efe8d8', '#e9e1cf']), sandals: true, peyos: 'short', torch, belt: '#5a3a22' };
+    const n = spawnNPC(unique(sp), DANCE.x, DANCE.z, { still: true, lines: 'dancer', label: i === 0 ? 'lbl_dance' : null });
+    n.dance = { a0: i / nD * Math.PI * 2 }; dancers.push(n);
+  }
+  // people watching and clapping around the circle
+  for (let i = 0; i < Math.round(12 * many); i++) {
+    const a = i / Math.round(12 * many) * Math.PI * 2 + rr(-0.15, 0.15), r = DANCE.r + rr(3.0, 4.6), x = DANCE.x + Math.sin(a) * r, z = DANCE.z + Math.cos(a) * r;
+    const kind = rnd() < 0.8 ? 'man' : 'child';
+    const n = spawnNPC(person(kind, V), x, z, { still: true, lines: kind === 'man' ? 'israelite' : 'child', facing: Math.atan2(DANCE.x - x, DANCE.z - z) });
+    n.clapper = rnd() < 0.7;
+  }
+  // women watching from the balcony (Sukkah 51b)
+  for (let i = 0; i < Math.round(14 * many); i++) {
+    const side = i % 2 ? 1 : -1, x = rr(88, 136), z = side * 64.6;
+    spawnNPC(person('woman', V), x, z, { still: true, lines: 'woman', facing: side > 0 ? Math.PI : 0, fixedY: H.nashim + 9.8 });
+  }
+  torchFlames = makeTorchFlames(dancers.filter(n => n.p.spec.torch).length);
 
   // pilgrims bringing korbanos: Pilgrim Road → Southern Steps → tunnel → Har HaBayis → Ezras Nashim → Ezras Yisrael, and back
-  const pilgrimRoute = [[-80, 870], [-80, 600], [-80, 345], [-80, 300], [-80, 258], [-80, 230], [-80, 200], [-20, 140], [120, 90], [192, 8], [186, 0], [176, 0], [80, 0], [58, 0], [46, 0], [36, 3], [36, -8], [46, 0], [62, 0], [176, 0], [192, -8], [120, 90], [-20, 140], [-80, 200], [-80, 258], [-80, 300], [-80, 345], [-80, 600]];
+  const pilgrimRoute = [[-80, 870], [-80, 600], [-80, 345], [-80, 300], [-80, 258], [-80, 230], [-80, 200], [-20, 140], [120, 90], [192, 8], [186, 0], [176, 0], [130, -14], [80, -14], [60, -2], [52, 0], [46, 0], [36, 3], [36, -8], [46, 0], [52, 0], [60, 2], [80, 14], [130, 14], [176, 0], [192, -8], [120, 90], [-20, 140], [-80, 200], [-80, 258], [-80, 300], [-80, 345], [-80, 600]];
   const kinds = ['sheep', 'goat', 'sheep', 'calf', 'lamb', 'sheep', 'goat', 'sheep'];
-  const nP = QUALITY.high ? 10 : 6;
+  const nP = QUALITY.high ? 10 : 7;
   for (let i = 0; i < nP; i++) {
     const startIdx = Math.floor(i / nP * pilgrimRoute.length), [sx, sz] = pilgrimRoute[startIdx];
     const carry = i % 4 === 3, doves = i % 5 === 2;
@@ -1811,34 +1992,131 @@ function populate() {
   const lead = spawnNPC(unique({ type: 'israelite', skin: '#d9a982', hair: '#2a1d14', beard: '#3b2717', robe: '#d8ccb0', mantle: '#efe8d8', sudar: '#efe8d8', sandals: true, flute: true, peyos: 'short' }), -80, 760, { route: bikRoute, speed: 1.1, lines: 'bikkurim', label: 'lbl_bikkurim' });
   lead.flute = true; lead.ri = 1; [lead.tx, lead.tz] = bikRoute[1]; bikLead = lead;
   const ox = spawnNPC(makeAnimal('ox'), -80, 766, { follow: lead, offset: [0, 4.5], lines: null, speed: 2 }); ox.animal = 'ox';
-  for (let i = 0; i < (QUALITY.high ? 12 : 7); i++) {
+  for (let i = 0; i < (QUALITY.high ? 12 : 8); i++) {
     const fem = i % 3 === 1;
     const pp = instantiate(poolPick(fem ? 'woman' : 'man', 3, { basket: fem ? '#b08a50' : '#c9a060' }));
     spawnNPC(pp, -80, 750 - i * 2, { follow: lead, offset: [((i % 3) - 1) * 1.8, -3 - Math.floor(i / 3) * 2.4], lines: 'bikkurim' });
   }
-  for (let i = 0; i < (QUALITY.high ? 14 : 8); i++) {
+  for (let i = 0; i < (QUALITY.high ? 14 : 10); i++) {
     const side = i % 2 ? 1 : -1, z = 360 + i * 36;
     const pp = instantiate(poolPick(rnd() < 0.8 ? 'man' : 'woman', 2, i % 3 === 0 ? { doveCage: true } : {}));
-    spawnNPC(pp, -80 + side * 7.2, z, { still: true, lines: 'merchant', facing: side > 0 ? -Math.PI / 2 : Math.PI / 2 });
+    const m = spawnNPC(pp, -80 + side * 7.2, z, { still: true, lines: 'merchant', facing: side > 0 ? -Math.PI / 2 : Math.PI / 2 }); m.merchant = true;
   }
   spawnNPC(person('man', V), -118, 318, { zone: [-128, -108, 308, 328], lines: 'shepherd', label: 'lbl_sheep' });
-  for (let i = 0; i < (QUALITY.high ? 9 : 5); i++) { const a = makeAnimal(pick(['sheep', 'sheep', 'lamb', 'goat'])); const n = spawnNPC(a, -122 + rr(-4, 4), 318 + rr(-6, 6), { zone: [-130, -112, 310, 326], lines: null, speed: 0.8 }); n.animal = a.kind; }
+  for (let i = 0; i < (QUALITY.high ? 9 : 6); i++) { const a = makeAnimal(pick(['sheep', 'sheep', 'lamb', 'goat'])); const n = spawnNPC(a, -122 + rr(-4, 4), 318 + rr(-6, 6), { zone: [-130, -112, 310, 326], lines: null, speed: 0.8 }); n.animal = a.kind; }
+  buildContactShadows();
+  buildCrowd();
 }
 
-let frameNo = 0;
-function updateNPCs(dt, playerPos) {
+/* =====================================================================
+   THE CROWD — hundreds of far-away pilgrims (two draw calls). Up close they hand
+   over to the full characters, so the courts look as full as on a Regel.
+   ===================================================================== */
+let crowdA = null, crowdB = null; const crowdAg = [];
+const _cm = new THREE.Matrix4(), _cq = new THREE.Quaternion(), _cv = new THREE.Vector3(), _cs = new THREE.Vector3(), _cy = new THREE.Vector3(0, 1, 0);
+function buildCrowd() {
+  const n = QUALITY.high ? 900 : 480;
+  const robe = new THREE.LatheGeometry([[0.0, 0.05], [0.55, 0.05], [0.5, 0.9], [0.45, 1.8], [0.5, 2.6], [0.42, 2.9], [0.14, 3.02]].map(q => new THREE.Vector2(q[0], q[1])), 9); robe.scale(1, 1, 0.75);
+  const cap = new THREE.SphereGeometry(0.31, 8, 5, 0, Math.PI * 2, 0, Math.PI * 0.55); cap.translate(0, 3.28, -0.02);
+  const armsG = new THREE.CylinderGeometry(0.13, 0.15, 1.2, 5); const aL = armsG.clone().translate(0.5, 2.25, 0), aR = armsG.clone().translate(-0.5, 2.25, 0);
+  const cloth = mergeGeometries([robe, cap, aL, aR].map(g => { const q = g.index ? g.toNonIndexed() : g; for (const k of Object.keys(q.attributes)) if (k !== 'position' && k !== 'normal') q.deleteAttribute(k); return q; }));
+  cloth.computeVertexNormals();
+  const head = new THREE.SphereGeometry(0.25, 8, 6); head.scale(1, 1.25, 1.1); head.translate(0, 3.25, 0.03);
+  const mat = new THREE.MeshStandardMaterial({ roughness: 0.95 });
+  crowdA = new THREE.InstancedMesh(cloth, mat, n); crowdB = new THREE.InstancedMesh(head, new THREE.MeshStandardMaterial({ roughness: 0.7 }), n);
+  crowdA.frustumCulled = crowdB.frustumCulled = false;
+  const zones = [[-200, 200, 100, 200, 5], [-200, 200, -205, -105, 3], [196, 218, -190, 190, 1], [-212, -178, -190, 190, 1], [60, 172, -56, 56, 2.2], [-135, -25, 303, 336, 1.3], [-86, -74, 350, 880, 1.6], [30, 39.5, -60, 60, 0.7]];
+  const wsum = zones.reduce((a, z) => a + z[4], 0), tmp = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    let r = rnd() * wsum, zi = 0; while (r > zones[zi][4]) { r -= zones[zi][4]; zi++; }
+    const zone = zones[zi]; let x, z, t = 0; do { x = rr(zone[0], zone[1]); z = rr(zone[2], zone[3]); } while ((blockedAt(x, z, groundHeight(x, z)) || inNoGo(x, z)) && t++ < 20);
+    const kind = rnd(), fem = kind < 0.33, kid = kind > 0.88;
+    crowdAg.push({ x, z, tx: x, tz: z, zone, wait: rr(0, 8), sp: rr(1.1, 1.8), yaw: rr(0, 6.28), ph: rr(0, 6), sc: (kid ? 0.66 : fem ? 0.93 : 1) * rr(0.94, 1.06), still: rnd() < 0.35 });
+    tmp.set(fem ? pick(WOMEN) : pick([...ROBES, '#efe8d8', '#e6dcc4', '#d8ccb0'])); crowdA.setColorAt(i, tmp);
+    tmp.set(pick(SKINS)); crowdB.setColorAt(i, tmp);
+  }
+  scene.add(crowdA, crowdB);
+}
+function updateCrowd(dt, pp) {
+  if (!crowdA) return;
+  const near2 = 26 * 26, far2 = (QUALITY.high ? 330 : 230) ** 2, t = performance.now() / 1000;
+  for (let i = 0; i < crowdAg.length; i++) {
+    const a = crowdAg[i], d2 = (a.x - pp.x) ** 2 + (a.z - pp.z) ** 2;
+    let moving = false;
+    if (!a.still && d2 < far2) {
+      if (a.wait > 0) a.wait -= dt;
+      else {
+        const dx = a.tx - a.x, dz = a.tz - a.z, d = Math.hypot(dx, dz);
+        if (d < 0.5) { a.wait = rr(1, 9); const zn = a.zone; for (let k = 0; k < 6; k++) { const x = rr(zn[0], zn[1]), z = rr(zn[2], zn[3]); if (Math.hypot(x - a.x, z - a.z) < 40 && !inNoGo(x, z) && !blockedAt(x, z, groundHeight(x, z))) { a.tx = x; a.tz = z; break; } } }
+        else { const st = Math.min(a.sp * dt, d); a.x += dx / d * st; a.z += dz / d * st; a.yaw = lerpAngle(a.yaw, Math.atan2(dx, dz), dt * 4); moving = true; a.ph += dt * 7; }
+      }
+    }
+    const vis = d2 > near2 && d2 < far2;
+    const y = groundHeight(a.x, a.z) + (moving ? Math.abs(Math.sin(a.ph)) * 0.06 : 0);
+    _cq.setFromAxisAngle(_cy, a.yaw + (moving ? Math.sin(a.ph) * 0.05 : Math.sin(t * 0.4 + a.ph) * 0.06));
+    _cs.setScalar(vis ? a.sc : 0); _cm.compose(_cv.set(a.x, y, a.z), _cq, _cs);
+    crowdA.setMatrixAt(i, _cm); crowdB.setMatrixAt(i, _cm);
+  }
+  crowdA.instanceMatrix.needsUpdate = true; crowdB.instanceMatrix.needsUpdate = true;
+}
+
+/* soft contact shadows under everyone (one draw call) — people stand on the ground instead of floating */
+let shadowIM = null;
+function buildContactShadows() {
+  const tex = radialTex([[0, 'rgba(0,0,0,.55)'], [0.45, 'rgba(0,0,0,.32)'], [1, 'rgba(0,0,0,0)']]);
+  const g = new THREE.PlaneGeometry(1, 1); g.rotateX(-Math.PI / 2);
+  shadowIM = new THREE.InstancedMesh(g, new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }), npcs.length + 1);
+  shadowIM.frustumCulled = false; shadowIM.renderOrder = 1; scene.add(shadowIM);
+}
+const _sm = new THREE.Matrix4(), _sq = new THREE.Quaternion(), _sv = new THREE.Vector3(), _ss = new THREE.Vector3();
+function setShadow(i, x, y, z, w, l, yaw, vis) {
+  if (!shadowIM) return;
+  if (!vis) _ss.set(0, 0, 0); else _ss.set(w, 1, l);
+  _sq.setFromAxisAngle(_sv.set(0, 1, 0), yaw); shadowIM.setMatrixAt(i, _sm.compose(_sv.set(x, y + 0.04, z), _sq, _ss));
+}
+
+/* torches carried by the dancers — flames follow their hands */
+function makeTorchFlames(count) {
+  if (!count) return null;
+  const g = new THREE.BufferGeometry(); const pos = new Float32Array(count * 3), size = new Float32Array(count).fill(1.5), ph = new Float32Array(count).map(() => Math.random() * 10);
+  g.setAttribute('position', new THREE.BufferAttribute(pos, 3)); g.setAttribute('size', new THREE.BufferAttribute(size, 1)); g.setAttribute('phase', new THREE.BufferAttribute(ph, 1));
+  const pts = new THREE.Points(g, flameMaterial()); pts.frustumCulled = false; scene.add(pts);
+  return { pts, pos, count };
+}
+const _tv = new THREE.Vector3();
+
+const angDiff = (a, b) => ((a - b + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+let frameNo = 0, chatterT = 2, bandOn = false, danceA = 0;
+function updateNPCs(dt, playerPos, playing = false) {
   frameNo++;
+  const now = performance.now() / 1000;
+  // groups: who is speaking
+  for (const G of groups) { G.t -= dt; if (G.t < 0) { G.t = rr(2.5, 6); G.speaker = Math.floor(rnd() * G.members.length); } }
+  // the band plays while you are anywhere near Ezras Nashim; dancers step on the beat
+  const dB = Math.hypot(playerPos.x - BAND.x, playerPos.z - BAND.z);
+  const wantBand = dB < 150 && playerPos.y > -6;
+  if (wantBand !== bandOn || frameNo % 30 === 0) { bandOn = wantBand; AUDIO.band(BAND.x, BAND.y + 3, BAND.z, bandOn); }
+  const beat = AUDIO.bandBeat() ?? now * 2;
+  danceA += dt * (bandOn ? 0.12 : 0.03); const danceAng = danceA;
+  let ti = 0;
   for (const n of npcs) {
     const d2 = (n.x - playerPos.x) ** 2 + (n.z - playerPos.z) ** 2;
-    const far = d2 > NPC_FAR * NPC_FAR; n.p.root.visible = !far; if (far && !n.route && !n.follow) continue;
+    const far = d2 > NPC_FAR * NPC_FAR; n.p.root.visible = !far;
+    if (far && !n.route && !n.follow) { setShadow(n.idx, 0, 0, 0, 0, 0, 0, false); continue; }
     let ndt = dt; if (d2 > 110 * 110) { n.acc += dt; if ((frameNo + n.idx) % 3) continue; ndt = n.acc; n.acc = 0; }   // far people: fewer updates
     let speed = 0;
+    if (n.dance) {
+      const a = n.dance.a0 + danceAng, r = DANCE.r + Math.sin(beat * Math.PI * 0.25) * 0.25;
+      const nx = DANCE.x + Math.sin(a) * r, nz = DANCE.z + Math.cos(a) * r;
+      speed = Math.hypot(nx - n.x, nz - n.z) / Math.max(ndt, 1e-3) * 0.3; n.x = nx; n.z = nz;
+      n.yaw = Math.atan2(DANCE.x - n.x, DANCE.z - n.z) + 0.22;
+    }
     if (n.follow) {
       const f = n.follow; const ox = Math.cos(f.yaw) * n.offset[0] + Math.sin(f.yaw) * n.offset[1], oz = -Math.sin(f.yaw) * n.offset[0] + Math.cos(f.yaw) * n.offset[1];
       n.tx = f.x + ox; n.tz = f.z + oz;
       if (n.maxX != null && n.tx < n.maxX + 6 && Math.abs(n.tz) < 70) { n.tx = n.maxX + 22; n.tz = clamp(n.tz, -18, 18); }
     }
-    if (n.talking > 0) { n.talking -= ndt; const a = Math.atan2(playerPos.x - n.x, playerPos.z - n.z); n.yaw = lerpAngle(n.yaw, a, ndt * 4); }
+    if (n.talking > 0) { n.talking -= ndt; const a = Math.atan2(playerPos.x - n.x, playerPos.z - n.z); if (!n.group && !n.dance) n.yaw = lerpAngle(n.yaw, a, ndt * 4); }
     else if (!n.still) {
       if (n.zone && !n.route && !n.follow && n.wait > 0) n.wait -= ndt;
       else {
@@ -1849,22 +2127,55 @@ function updateNPCs(dt, playerPos) {
         } else {
           const sp = Math.min(n.speed * (n.follow ? clamp(dist / 2, 0, 1.6) : 1), dist / Math.max(ndt, 1e-3));
           const nx = n.x + dx / dist * sp * ndt, nz = n.z + dz / dist * sp * ndt, ny = groundHeight(nx, nz, n.y);
-          const free = n.route || n.follow || (Math.abs(ny - n.y) < 1.2 && !blockedAt(nx, nz, ny, 0.4));
+          // make way: wait politely if you are standing right in front of them
+          const yieldP = playing && !n.animal && (nx - playerPos.x) ** 2 + (nz - playerPos.z) ** 2 < 1.3 * 1.3 && Math.abs(playerPos.y - n.y) < 2 && (dx * (playerPos.x - n.x) + dz * (playerPos.z - n.z)) > 0;
+          const free = !yieldP && (n.route || n.follow || (Math.abs(ny - n.y) < 1.2 && !blockedAt(nx, nz, ny, 0.4)));
           if (free) { n.x = nx; n.z = nz; speed = sp; n.yaw = lerpAngle(n.yaw, Math.atan2(dx, dz), ndt * 6); }
+          else if (yieldP) { n.yaw = lerpAngle(n.yaw, Math.atan2(playerPos.x - n.x, playerPos.z - n.z), ndt * 3); }
           else if (n.zone) pickTarget(n);
         }
       }
     }
-    n.y = lerp(n.y, groundHeight(n.x, n.z, n.y), Math.min(1, ndt * 10));
+    n.y = n.fixedY ?? lerp(n.y, groundHeight(n.x, n.z, n.y), Math.min(1, ndt * 10));
     n.p.root.position.set(n.x, n.y, n.z); n.p.root.rotation.y = n.yaw;
+    const sc = n.p.scale || 1;
     if (!far) {
-      animatePerson(n.p, ndt, speed, { playing: n.playing && levitesSinging, blowing: n.trumpeter && trumpetsBlowing, shuckle: n.shuckle && speed < 0.1, bow: bowing && n.zone && n.y > 13 && n.x > 28 && n.x < 40 });
+      // where is this person looking?
+      if (!n.p.isAnimal && d2 < 45 * 45) {
+        let ly = 0, lp = 0;
+        const G = n.group;
+        if (n.talking > 0 || (d2 < 7.5 * 7.5 && (n.aware ??= rnd() < 0.7) && playing)) { ly = angDiff(Math.atan2(playerPos.x - n.x, playerPos.z - n.z), n.yaw); if (Math.abs(ly) > 1.7) ly = 0; lp = -0.05; }
+        else if (G) { const sp2 = G.members[G.speaker]; if (sp2 === n) { const o = G.members[(G.speaker + 1 + Math.floor(now / 2.3) % Math.max(1, G.members.length - 1)) % G.members.length]; ly = angDiff(Math.atan2(o.x - n.x, o.z - n.z), n.yaw); } else ly = angDiff(Math.atan2(sp2.x - n.x, sp2.z - n.z), n.yaw); }
+        else if (n.dance || n.clapper) { ly = Math.sin(now * 0.7 + n.idx) * 0.3; lp = -0.08; }
+        else if (n.band) { ly = Math.sin(now * 0.4 + n.idx) * 0.25; lp = 0.05; }
+        else { n.glanceT -= ndt; if (n.glanceT < 0) { n.glanceT = rr(1.5, 6); n.glance = rnd() < 0.45 ? rr(-0.9, 0.9) : 0; n.glanceP = rnd() < 0.3 ? rr(-0.15, 0.1) : 0; } ly = n.glance; lp = n.glanceP || 0; }
+        n.p.lookY = ly; n.p.lookP = lp;
+      }
+      const G = n.group, speaking = G && G.members[G.speaker] === n;
+      animatePerson(n.p, ndt, speed, {
+        playing: (n.playing && levitesSinging) || (n.band && bandOn), blowing: n.trumpeter && trumpetsBlowing, beat,
+        shuckle: n.shuckle && speed < 0.1, bow: bowing && n.zone && n.y > 13 && n.x > 28 && n.x < 40,
+        gesture: speaking ? 1 : n.talking > 0 ? 0.8 : 0, nod: G && !speaking ? 0.6 : 0, dance: n.dance && bandOn ? 1 : 0,
+        clap: n.clapper && bandOn,
+      });
       if (n.p.mesh) n.p.mesh.castShadow = d2 < SHADOW_NEAR * SHADOW_NEAR;
+      if (n.dance && n.p.spec.torch && torchFlames && ti < torchFlames.count) { n.p.pivots.foreR.updateWorldMatrix(true, false); _tv.set(0, -1.5, 0.06).applyMatrix4(n.p.pivots.foreR.matrixWorld); torchFlames.pos.set([_tv.x, _tv.y, _tv.z], ti * 3); ti++; }
     }
-    if (n.labelSprite) n.labelSprite.visible = d2 < 70 * 70 && showLabels;
+    setShadow(n.idx, n.x, n.y, n.z, (n.p.isAnimal ? 1.4 : 1.25) * sc * (n.p.isAnimal ? (n.p.kind === 'ox' ? 1.8 : n.p.kind === 'calf' ? 1.4 : 0.9) : 1), (n.p.isAnimal ? 2.4 : 1.0) * sc * (n.p.isAnimal ? (n.p.kind === 'ox' ? 1.6 : n.p.kind === 'calf' ? 1.3 : 0.8) : 1), n.yaw, !far && n.p.root.visible && !n.fixedY);
+    if (n.labelSprite) n.labelSprite.visible = d2 < 40 * 40 && showLabels;
     if (n.bells && speed > 0.2) { n.bellT = (n.bellT || 0) + ndt; if (n.bellT > 0.42) { n.bellT = 0; AUDIO.bell(n.x, n.y + 1, n.z, d2); } }
     if (n.animal && d2 < 60 * 60 && Math.random() < ndt * 0.05) AUDIO.animal(n.animal, n.x, n.y + 1.5, n.z);
     if (n.flute && d2 < 140 * 140) AUDIO.flute(n.x, n.y + 3, n.z);
+  }
+  if (torchFlames) { torchFlames.pts.geometry.attributes.position.needsUpdate = true; torchFlames.pts.visible = bandOn && sunDir.y < 0.25; }
+  if (shadowIM) shadowIM.instanceMatrix.needsUpdate = true;
+  // a voice nearby now and then — someone talking as you pass
+  chatterT -= dt;
+  if (chatterT < 0) {
+    chatterT = rr(1.6, 4.5);
+    let best = null, bd = 18 * 18;
+    for (let k = 0; k < 12; k++) { const n = npcs[Math.floor(Math.random() * npcs.length)]; if (!n || n.p.isAnimal || n.dance || n.band || n.duchan) continue; const d2 = (n.x - playerPos.x) ** 2 + (n.z - playerPos.z) ** 2; if (d2 < bd && Math.abs(n.y - playerPos.y) < 6) { bd = d2; best = n; } }
+    if (best) { const t = best.p.spec.type; AUDIO.chatter(best.x, best.y + 3.2 * (best.p.scale || 1), best.z, t === 'woman' || best.p.spec.girl ? 'f' : t === 'child' ? 'c' : 'm'); }
   }
   for (const r of ropes) {
     const vis = r.n.p.root.visible && !!r.n.p.pivots.head && r.owner.p.root.visible; r.line.visible = vis; if (!vis) continue;
@@ -1908,269 +2219,465 @@ async function loadGLTFCharacters() {
 function animateGLTF(p, dt, speed) { p.mixer.update(dt); if (p.aw && p.ai) { const w = clamp(speed / 2, 0, 1); p.aw.weight = w; p.ai.weight = 1 - w; } }
 
 /* =====================================================================
-   AUDIO — everything is synthesised live with Web Audio (no files needed).
-   Optional: drop real recordings into /audio (see README) and they are used too.
+   AUDIO — light-weight engine
+   • Crowds, the Leviim's choir, fire, wind, birds, water, animals, trumpets
+     and the chalil are PRE-RENDERED once (OfflineAudioContext, in the
+     background while loading) and then simply played back.
+   • A small fixed set of positional "panners" is reused — no node churn.
+   • Background music (violin + guitar + cello, original niggunim) is played
+     by a tiny live sequencer: a handful of nodes per note.
+   • Spoken dialogue uses the browser's own human voices (speechSynthesis).
+   • Real recordings in /audio replace the generated sounds (see audio/README.md).
    ===================================================================== */
 const AUDIO = (() => {
-  let ctx, master, reverb, wet, dry, noiseBuf, started = false, vol = 0.8;
+  let ctx = null, master, comp, sfx, wetSend, reverb, ambBus, ambLP, musicBus, musicGain, bandBus, bandGainNode, bandPanner, choirPanner, flutePanner, started = false;
+  const bandPos = { x: 0, z: 0 };
+  const vol = { master: 0.85, music: 0.5, musicOn: true, speech: true };
   const listenerPos = new THREE.Vector3();
-  const FREYGISH = [146.83, 155.56, 185.0, 196.0, 220.0, 233.08, 261.63, 293.66, 311.13, 369.99, 392.0];
-  const ksCache = {};
+  const PRE = {};                 // pre-rendered AudioBuffers
+  const waiting = [];             // things to start when a buffer becomes ready
+  let rngA = mulberry32(7);
+  const R = (a, b) => a + (b - a) * rngA();
+  const midi = (m) => 440 * Math.pow(2, (m - 69) / 12);
 
-  function makeImpulse(sec = 3.2, decay = 2.6) {
-    const len = ctx.sampleRate * sec, b = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay) * (i < 400 ? i / 400 : 1); }
+  /* ================= offline pre-rendering (no user gesture needed) ================= */
+  function offline(sec, rate = 22050, ch = 1) { return new OfflineAudioContext(ch, Math.ceil(sec * rate), rate); }
+  function noiseBufFor(c, sec = 2) { const b = c.createBuffer(1, c.sampleRate * sec, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; }
+  function normalize(buf, peak = 0.9) { let m = 0; for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) m = Math.max(m, Math.abs(d[i])); } if (m > 0) for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= peak / m; } return buf; }
+  /** make a seamless loop: crossfade the last `f` seconds into the start */
+  function makeLoop(buf, f = 1) {
+    const n = Math.floor(f * buf.sampleRate), L = buf.length - n;
+    const out = new AudioBuffer({ length: L, sampleRate: buf.sampleRate, numberOfChannels: buf.numberOfChannels });
+    for (let c = 0; c < buf.numberOfChannels; c++) { const s = buf.getChannelData(c), d = out.getChannelData(c); d.set(s.subarray(0, L)); for (let i = 0; i < n; i++) { const k = i / n; d[i] = s[i] * k + s[L + i] * (1 - k); } }
+    return out;
+  }
+  const VOW = [[730, 1090], [530, 1840], [270, 2290], [570, 840], [440, 1020], [660, 1700], [390, 1990]];
+  /** a crowd of people talking — glottal source + moving formants + consonant noise per speaker */
+  async function renderBabble(sec = 11, speakers = 26, femaleFrac = 0.4, seed = 1) {
+    const c = offline(sec + 1); const rng = mulberry32(seed), r = (a, b) => a + (b - a) * rng();
+    const nb = noiseBufFor(c), mix = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3800; mix.connect(lp); lp.connect(c.destination);
+    for (let s = 0; s < speakers; s++) {
+      const fem = rng() < femaleFrac, base = fem ? r(185, 235) : r(98, 140);
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = base;
+      const env = c.createGain(); env.gain.value = 0;
+      const f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(), f3 = c.createBiquadFilter(); f1.type = f2.type = f3.type = 'bandpass'; f1.Q.value = 5; f2.Q.value = 7; f3.Q.value = 6; f3.frequency.value = fem ? 3000 : 2600;
+      const out = c.createGain(); out.gain.value = r(0.25, 1);
+      o.connect(env); env.connect(f1); env.connect(f2); env.connect(f3); f1.connect(out); f2.connect(out);
+      const f3g = c.createGain(); f3g.gain.value = 0.35; f3.connect(f3g); f3g.connect(out);
+      const ns = c.createBufferSource(); ns.buffer = nb; ns.loop = true; const cg = c.createGain(); cg.gain.value = 0; const hp = c.createBiquadFilter(); hp.type = 'bandpass'; hp.frequency.value = r(2500, 5000); hp.Q.value = 0.8;
+      ns.connect(hp); hp.connect(cg); cg.connect(out); out.connect(mix);
+      let t = r(0, 2);
+      while (t < sec - 0.4) {
+        const syl = 3 + Math.floor(rng() * 9); let p0 = base * r(1.0, 1.15);
+        for (let k = 0; k < syl && t < sec - 0.3; k++) {
+          const d = r(0.08, 0.22), v = VOW[Math.floor(rng() * VOW.length)], stress = rng() < 0.25 ? 1.15 : 1;
+          if (rng() < 0.75) { cg.gain.setValueAtTime(0, t); cg.gain.linearRampToValueAtTime(r(0.15, 0.4), t + 0.012); cg.gain.linearRampToValueAtTime(0, t + r(0.03, 0.07)); }
+          const ts = t + 0.03;
+          o.frequency.setTargetAtTime(p0 * stress * r(0.94, 1.06), ts, 0.03);
+          f1.frequency.setTargetAtTime(v[0] * (fem ? 1.15 : 1), ts, 0.025); f2.frequency.setTargetAtTime(v[1] * (fem ? 1.12 : 1), ts, 0.025);
+          env.gain.setTargetAtTime(r(0.18, 0.32) * stress, ts, 0.015); env.gain.setTargetAtTime(0.02, ts + d * 0.75, 0.02);
+          t += d + r(0.015, 0.06); p0 *= 0.985;
+        }
+        env.gain.setTargetAtTime(0, t, 0.03); t += r(0.35, 2.2);
+      }
+      o.start(0); ns.start(0, rng() * 1.5);
+    }
+    return makeLoop(normalize(await c.startRendering(), 0.8), 1);
+  }
+  /** one person saying one short sentence (pitch contour, stress, consonants) */
+  async function renderPhrase(seed, kind) {
+    const rng = mulberry32(seed), r = (a, b) => a + (b - a) * rng(), fem = kind === 'f', child = kind === 'c';
+    const sec = 2.6, c = offline(sec, 22050), nb = noiseBufFor(c, 1);
+    const base = child ? r(260, 320) : fem ? r(190, 235) : r(95, 135);
+    const o = c.createOscillator(); o.type = 'sawtooth'; const env = c.createGain(); env.gain.value = 0;
+    const f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(), f3 = c.createBiquadFilter(); f1.type = f2.type = f3.type = 'bandpass'; f1.Q.value = 6; f2.Q.value = 8; f3.Q.value = 5; f3.frequency.value = fem || child ? 3100 : 2650;
+    const out = c.createGain(), lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 4200; out.connect(lp); lp.connect(c.destination);
+    o.connect(env); [f1, f2, f3].forEach((f, i) => { env.connect(f); const g = c.createGain(); g.gain.value = [1, 0.7, 0.25][i]; f.connect(g); g.connect(out); });
+    const ns = c.createBufferSource(); ns.buffer = nb; ns.loop = true; const ng = c.createGain(); ng.gain.value = 0; const nf = c.createBiquadFilter(); nf.type = 'bandpass'; nf.frequency.value = r(3000, 5500); nf.Q.value = 0.9; ns.connect(nf); nf.connect(ng); ng.connect(out);
+    const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = r(4, 6); vg.gain.value = base * 0.012; vib.connect(vg); vg.connect(o.frequency);
+    let t = 0.05; const syl = 5 + Math.floor(rng() * 7), question = rng() < 0.3; let p0 = base * r(1.05, 1.2);
+    for (let k = 0; k < syl && t < sec - 0.3; k++) {
+      const d = r(0.09, 0.2) * (k === syl - 1 ? 1.6 : 1), v = VOW[Math.floor(rng() * VOW.length)], stress = rng() < 0.3 ? 1.12 : 1;
+      if (rng() < 0.7) { ng.gain.setValueAtTime(0, t); ng.gain.linearRampToValueAtTime(r(0.12, 0.35), t + 0.01); ng.gain.linearRampToValueAtTime(0, t + r(0.03, 0.08)); }
+      const ts = t + 0.035, pitch = p0 * stress * (question && k >= syl - 2 ? 1.25 : 1);
+      o.frequency.setTargetAtTime(pitch, ts, 0.03);
+      f1.frequency.setTargetAtTime(v[0] * (fem || child ? 1.18 : 1), ts, 0.02); f2.frequency.setTargetAtTime(v[1] * (fem || child ? 1.15 : 1), ts, 0.02);
+      env.gain.setTargetAtTime(r(0.22, 0.32) * stress, ts, 0.012); env.gain.setTargetAtTime(0.03, ts + d * 0.75, 0.018);
+      t += d + r(0.01, 0.05); p0 *= question ? 0.99 : 0.965;
+      if (rng() < 0.12) t += r(0.1, 0.25);
+    }
+    env.gain.setTargetAtTime(0, t, 0.04); o.start(0); vib.start(0); ns.start(0);
+    return normalize(await c.startRendering(), 0.85);
+  }
+  /** a short Karplus-Strong pluck (lyre / guitar string) computed directly */
+  function ksBuffer(f, sec = 2.2, rate = 32000, damp = 0.4985, bright = 0.5) {
+    const N = Math.max(2, Math.round(rate / f)), len = Math.floor(sec * rate), b = new AudioBuffer({ length: len, sampleRate: rate, numberOfChannels: 1 }), d = b.getChannelData(0), ring = new Float32Array(N);
+    let prev = 0; for (let i = 0; i < N; i++) { const w = Math.random() * 2 - 1; ring[i] = prev = prev + (w - prev) * bright; }
+    let idx = 0; for (let i = 0; i < len; i++) { const nx = (idx + 1) % N; const v = ring[idx]; ring[idx] = damp * (v + ring[nx]); d[i] = v * (i < 40 ? i / 40 : 1); idx = nx; }
     return b;
   }
-  function panner(x, y, z, ref = 12, roll = 1.1) {
-    const p = ctx.createPanner(); p.panningModel = 'HRTF'; p.distanceModel = 'inverse'; p.refDistance = ref; p.rolloffFactor = roll; p.maxDistance = 4000;
-    p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; p.connect(dry); p.connect(wet); return p;
+  async function renderChoir(sec = 34) {
+    const rate = 32000, c = offline(sec, rate); const nb = noiseBufFor(c);
+    const mel = [[4, 2], [5, 1], [4, 1], [3, 2], [2, 1], [3, 1], [4, 3], [4, 1], [5, 1], [6, 1], [5, 2], [4, 1], [3, 1], [2, 2], [1, 1], [2, 1], [3, 2], [2, 1], [1, 1], [0, 4], [0, 1], [2, 1], [3, 1], [4, 1], [5, 2], [4, 1], [3, 1], [4, 2], [2, 1], [1, 1], [0, 4]];
+    const SC = [146.83, 155.56, 185.0, 196.0, 220.0, 233.08, 261.63, 293.66];
+    const beat = 0.78, mix = c.createGain(); mix.connect(c.destination);
+    for (let v = 0; v < 6; v++) {
+      const o = c.createOscillator(); o.type = 'sawtooth'; const vib = c.createOscillator(), vg = c.createGain(); vib.frequency.value = 4.8 + v * 0.3; vg.gain.value = 1.6; vib.connect(vg); vg.connect(o.frequency);
+      const env = c.createGain(); env.gain.value = 0; o.connect(env);
+      const fs = [c.createBiquadFilter(), c.createBiquadFilter(), c.createBiquadFilter()]; fs.forEach((f, i) => { f.type = 'bandpass'; f.Q.value = [6, 8, 6][i]; env.connect(f); f.connect(mix); }); fs[2].frequency.value = 2600;
+      let t = 0.6 + v * 0.03; const oct = v === 5 ? 0.5 : 1;
+      for (const [deg, b] of mel) {
+        const d = b * beat, f = SC[deg] * oct * (1 + (v - 2.5) * 0.0015), vw = VOW[[0, 3, 4, 0, 1][(deg + v) % 5]];
+        o.frequency.setTargetAtTime(f, t, 0.04); fs[0].frequency.setTargetAtTime(vw[0], t, 0.05); fs[1].frequency.setTargetAtTime(vw[1], t, 0.05);
+        env.gain.setTargetAtTime(0.11, t, 0.08); env.gain.setTargetAtTime(0.07, t + d * 0.6, 0.1);
+        t += d; if (t > sec - 2) break;
+      }
+      env.gain.setTargetAtTime(0, t, 0.4); o.start(0); vib.start(0);
+    }
+    // kinnoros (lyres) and tziltzal (cymbals)
+    let t = 0.6, i = 0;
+    for (const [deg, b] of mel) { const s = c.createBufferSource(), g = c.createGain(); s.buffer = ksBuffer(SC[deg] * 2, 2, rate); g.gain.value = 0.35; s.connect(g); g.connect(mix); s.start(t); if (i % 2 === 0) { const s2 = c.createBufferSource(), g2 = c.createGain(); s2.buffer = ksBuffer(SC[Math.max(0, deg - 2)], 2, rate); g2.gain.value = 0.25; s2.connect(g2); g2.connect(mix); s2.start(t + b * beat / 2); } if (i % 8 === 0) { const n = c.createBufferSource(), hp = c.createBiquadFilter(), g3 = c.createGain(); n.buffer = nb; hp.type = 'highpass'; hp.frequency.value = 5000; g3.gain.setValueAtTime(0.2, t); g3.gain.exponentialRampToValueAtTime(0.001, t + 1.5); n.connect(hp); hp.connect(g3); g3.connect(mix); n.start(t, 0, 1.6); } t += b * beat; i++; if (t > sec - 2) break; }
+    return normalize(await c.startRendering(), 0.85);
   }
-  function noise() { const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.start(ctx.currentTime, Math.random() * 3); return s; }
-  function env(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  async function renderTrumpets() {
+    const rate = 32000, c = offline(10, rate), mix = c.createGain(); mix.connect(c.destination);
+    const blast = (t, d) => [466, 469].forEach(f => { const o = c.createOscillator(), lp = c.createBiquadFilter(), g = c.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 0.94, t); o.frequency.linearRampToValueAtTime(f, t + 0.06); lp.type = 'lowpass'; lp.Q.value = 2; lp.frequency.setValueAtTime(700, t); lp.frequency.linearRampToValueAtTime(3400, t + 0.08); o.connect(lp); lp.connect(g); g.connect(mix); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.2, t + 0.05); g.gain.setValueAtTime(0.2, t + d - 0.08); g.gain.linearRampToValueAtTime(0.0001, t + d); o.start(t); o.stop(t + d + 0.05); });
+    let t = 0.2; blast(t, 2.2); t += 2.6; for (let i = 0; i < 9; i++) { blast(t, 0.18); t += 0.24; } t += 0.4; blast(t, 2.2);
+    return normalize(await c.startRendering(), 0.9);
+  }
+  async function renderFlute() {
+    const rate = 32000, sec = 15, c = offline(sec, rate), nb = noiseBufFor(c), mix = c.createGain(); mix.connect(c.destination);
+    const CH = [293.66, 311.13, 369.99, 392.0, 440.0, 466.16, 523.25, 587.33], tune = [4, 5, 4, 3, 2, 3, 4, 6, 5, 4, 3, 2, 1, 2, 0, 0, 4, 6, 7, 6, 5, 4, 5, 4, 3, 2, 3, 0];
+    let t = 0.3;
+    for (let i = 0; i < tune.length && t < sec - 1; i++) {
+      const d = [0.42, 0.28, 0.56, 0.28, 0.84][i % 5], f = CH[tune[i]] * 2;
+      const o = c.createOscillator(), g = c.createGain(), vib = c.createOscillator(), vg = c.createGain(); o.type = 'sine'; o.frequency.value = f; vib.frequency.value = 5.4; vg.gain.value = f * 0.007; vib.connect(vg); vg.connect(o.frequency);
+      const br = c.createBufferSource(), bf = c.createBiquadFilter(), bgn = c.createGain(); br.buffer = nb; bf.type = 'bandpass'; bf.frequency.value = f * 2; bf.Q.value = 2.5; bgn.gain.value = 0.22; br.connect(bf); bf.connect(bgn); bgn.connect(g);
+      o.connect(g); g.connect(mix); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.25, t + 0.05); g.gain.setValueAtTime(0.22, t + d - 0.05); g.gain.linearRampToValueAtTime(0.0001, t + d);
+      [o, vib].forEach(n => { n.start(t); n.stop(t + d + 0.05); }); br.start(t, Math.random()); br.stop(t + d); t += d;
+    }
+    return normalize(await c.startRendering(), 0.8);
+  }
+  async function renderBed(kind, sec) {
+    const c = offline(sec + 1), nb = noiseBufFor(c, 3), mix = c.createGain(); mix.connect(c.destination);
+    const noiseThrough = (type, f, q, g) => { const s = c.createBufferSource(); s.buffer = nb; s.loop = true; const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; const gn = c.createGain(); gn.gain.value = g; s.connect(fl); fl.connect(gn); gn.connect(mix); s.start(0, Math.random() * 2); return gn; };
+    if (kind === 'fire') {
+      noiseThrough('lowpass', 180, 0.7, 0.9);
+      for (let i = 0; i < sec * 14; i++) { const t = Math.random() * sec, s = c.createBufferSource(), hp = c.createBiquadFilter(), g = c.createGain(); s.buffer = nb; hp.type = 'highpass'; hp.frequency.value = 1500 + Math.random() * 3000; g.gain.setValueAtTime(Math.random() * 0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.02 + Math.random() * 0.04); s.connect(hp); hp.connect(g); g.connect(mix); s.start(t, Math.random() * 2, 0.08); }
+    } else if (kind === 'wind') {
+      const g = noiseThrough('lowpass', 420, 0.5, 0.5); for (let t = 0; t < sec; t += 1.5) g.gain.linearRampToValueAtTime(0.25 + Math.random() * 0.5, t);
+      const g2 = noiseThrough('bandpass', 900, 0.6, 0.08); for (let t = 0; t < sec; t += 2) g2.gain.linearRampToValueAtTime(Math.random() * 0.15, t);
+    } else if (kind === 'water') {
+      const g = noiseThrough('bandpass', 2400, 0.7, 0.5); for (let t = 0; t < sec; t += 0.15) g.gain.linearRampToValueAtTime(0.3 + Math.random() * 0.4, t);
+      noiseThrough('bandpass', 700, 1.2, 0.15);
+    } else if (kind === 'birds') {
+      for (let i = 0; i < sec * 1.6; i++) { // swifts screaming + sparrows
+        const t = Math.random() * sec, swift = Math.random() < 0.55, o = c.createOscillator(), g = c.createGain(), fm = c.createOscillator(), fg = c.createGain(); o.type = 'sine';
+        const f = swift ? 4200 + Math.random() * 1600 : 2800 + Math.random() * 2000; o.frequency.value = f; fm.frequency.value = swift ? 70 + Math.random() * 40 : 18; fg.gain.value = swift ? f * 0.12 : f * 0.05; fm.connect(fg); fg.connect(o.frequency);
+        const d = swift ? 0.25 + Math.random() * 0.35 : 0.06 + Math.random() * 0.08; o.connect(g); g.connect(mix); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(swift ? 0.05 : 0.08, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+        o.frequency.exponentialRampToValueAtTime(f * (swift ? 0.85 : 0.7), t + d); o.start(t); fm.start(t); o.stop(t + d + 0.02); fm.stop(t + d + 0.02);
+      }
+    }
+    return makeLoop(normalize(await c.startRendering(), 0.8), 1);
+  }
+  async function renderAnimal(kind, seed) {
+    const rng = mulberry32(seed), r = (a, b) => a + (b - a) * rng();
+    const sec = kind === 'moo' || kind === 'ox' ? 1.8 : 1.1, c = offline(sec), o = c.createOscillator(), g = c.createGain(), f1 = c.createBiquadFilter(), f2 = c.createBiquadFilter(), vib = c.createOscillator(), vg = c.createGain(), mix = c.createGain();
+    o.type = 'sawtooth'; f1.type = f2.type = 'bandpass'; mix.connect(c.destination);
+    if (kind === 'moo' || kind === 'ox') {
+      const b = kind === 'ox' ? r(72, 85) : r(100, 125); o.frequency.setValueAtTime(b, 0); o.frequency.linearRampToValueAtTime(b * 1.3, 0.5); o.frequency.linearRampToValueAtTime(b * 0.85, sec - 0.2);
+      f1.frequency.setValueAtTime(320, 0); f1.frequency.linearRampToValueAtTime(700, 0.6); f1.frequency.linearRampToValueAtTime(400, sec); f2.frequency.value = 1100; f1.Q.value = 3; f2.Q.value = 4; vib.frequency.value = 3; vg.gain.value = 2;
+      g.gain.setValueAtTime(0.0001, 0); g.gain.linearRampToValueAtTime(0.5, 0.25); g.gain.setValueAtTime(0.5, sec - 0.45); g.gain.linearRampToValueAtTime(0.0001, sec - 0.05);
+    } else {
+      const base = kind === 'lamb' ? r(470, 560) : kind === 'goat' ? r(260, 330) : r(320, 420);
+      o.frequency.setValueAtTime(base * 1.08, 0); o.frequency.linearRampToValueAtTime(base, 0.15); o.frequency.linearRampToValueAtTime(base * 0.9, sec - 0.15);
+      vib.frequency.value = kind === 'goat' ? r(9, 12) : r(6.5, 8.5); vg.gain.value = base * (kind === 'goat' ? 0.06 : 0.035);
+      f1.frequency.value = kind === 'goat' ? 900 : 1150; f2.frequency.value = kind === 'goat' ? 2300 : 2600; f1.Q.value = 2.5; f2.Q.value = 3;
+      g.gain.setValueAtTime(0.0001, 0); g.gain.linearRampToValueAtTime(0.5, 0.06); g.gain.setValueAtTime(0.45, sec * 0.6); g.gain.linearRampToValueAtTime(0.0001, sec - 0.05);
+    }
+    vib.connect(vg); vg.connect(o.frequency); o.connect(g); g.connect(f1); g.connect(f2); f1.connect(mix); f2.connect(mix); o.start(0); vib.start(0);
+    return normalize(await c.startRendering(), 0.9);
+  }
+  async function renderBell() {
+    const c = offline(1.2, 32000), mix = c.createGain(); mix.connect(c.destination);
+    [2637, 3951, 5274, 7040].forEach((f, i) => { const o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; o.connect(g); g.connect(mix); g.gain.setValueAtTime(0.0001, 0); g.gain.exponentialRampToValueAtTime(0.4 / (i + 1), 0.003); g.gain.exponentialRampToValueAtTime(0.0001, 1.0 - i * 0.15); o.start(0); });
+    return normalize(await c.startRendering(), 0.8);
+  }
+  let preparing = null;
+  function prepare() {
+    if (preparing) return preparing;
+    const job = async (k, fn) => { try { PRE[k] = await fn(); fire(k); } catch (e) { console.warn('audio', k, e); } };
+    preparing = (async () => {
+      await job('wind', () => renderBed('wind', 10));
+      await job('babbleA', () => renderBabble(11, 24, 0.4, 3));
+      await job('fire', () => renderBed('fire', 6));
+      await job('birds', () => renderBed('birds', 12));
+      await job('babbleB', () => renderBabble(9, 34, 0.45, 9));
+      await job('water', () => renderBed('water', 4));
+      for (const [k, kind, s] of [['sheep0', 'sheep', 1], ['sheep1', 'sheep', 2], ['lamb0', 'lamb', 3], ['goat0', 'goat', 4], ['calf0', 'moo', 5], ['ox0', 'ox', 6]]) await job(k, () => renderAnimal(kind, s));
+      await job('bell', renderBell);
+      for (let i = 0; i < 10; i++) await job('voice' + i, () => renderPhrase(100 + i * 7, i < 5 ? 'm' : i < 9 ? 'f' : 'c'));
+      await job('trumpets', renderTrumpets);
+      await job('flute', renderFlute);
+      await job('choir', () => renderChoir(34));
+    })();
+    return preparing;
+  }
+  function fire(k) { for (let i = waiting.length - 1; i >= 0; i--) if (waiting[i][0] === k) { const f = waiting[i][1]; waiting.splice(i, 1); if (started) f(PRE[k]); else waiting.push([k, f]); } }
+  function whenReady(k, f) { if (PRE[k] && started) f(PRE[k]); else waiting.push([k, f]); }
 
+  /* ================= live graph ================= */
+  function makeImpulse(sec = 2.6, decay = 2.8) {
+    const len = Math.floor(ctx.sampleRate * sec), b = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay) * (i < 300 ? i / 300 : 1); }
+    return b;
+  }
+  function mkPanner(x = 0, y = 0, z = 0, ref = 12, roll = 1.1, out = sfx) {
+    const p = ctx.createPanner(); p.panningModel = 'equalpower'; p.distanceModel = 'inverse'; p.refDistance = ref; p.rolloffFactor = roll; p.maxDistance = 3000;
+    setPos(p, x, y, z); p.connect(out); return p;
+  }
+  function setPos(p, x, y, z) { if (p.positionX) { p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; } else p.setPosition(x, y, z); }
+  function loopAt(buf, x, y, z, gain, ref = 18, roll = 1, out = ambBus) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const g = ctx.createGain(); g.gain.value = gain; const p = mkPanner(x, y, z, ref, roll, out); s.connect(g); g.connect(p); s.start(0, Math.random() * buf.duration); return { s, g, p }; }
+  function loopFlat(buf, gain, out = ambBus) { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const g = ctx.createGain(); g.gain.value = gain; s.connect(g); g.connect(out); s.start(0, Math.random() * buf.duration); return { s, g }; }
+  // pool of positional panners for one-shots (no new panners at runtime)
+  const pool = []; let poolI = 0;
+  function oneShot(buf, x, y, z, gain = 0.7, rate = 1, ref = 8) {
+    if (!started || !buf) return; const p = pool[poolI++ % pool.length]; setPos(p, x, y, z);
+    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = buf; s.playbackRate.value = rate; g.gain.value = gain; s.connect(g); g.connect(p); s.start();
+  }
+
+  const crowdZones = [[150, 8, 0, 0.55], [110, 8, -40, 0.45], [0, 2, 160, 0.6], [0, 2, -150, 0.4], [215, 2, 0, 0.4], [34, 15, 0, 0.45], [-10, 17, 40, 0.3], [-80, -32, 322, 0.6]];
   function start() {
     if (started) { ctx.resume(); return; }
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    master = ctx.createGain(); master.gain.value = vol; master.connect(ctx.destination);
-    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(master);
-    dry = ctx.createGain(); dry.gain.value = 0.85; dry.connect(comp);
-    reverb = ctx.createConvolver(); reverb.buffer = makeImpulse(); wet = ctx.createGain(); wet.gain.value = 0.32; wet.connect(reverb); reverb.connect(comp);
-    noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 4, ctx.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'playback' });
+    master = ctx.createGain(); master.gain.value = vol.master;
+    comp = ctx.createDynamicsCompressor(); comp.threshold.value = -14; comp.ratio.value = 3.5; comp.connect(master); master.connect(ctx.destination);
+    sfx = ctx.createGain(); sfx.connect(comp);
+    reverb = ctx.createConvolver(); reverb.buffer = makeImpulse(); wetSend = ctx.createGain(); wetSend.gain.value = 0.28; wetSend.connect(reverb); reverb.connect(comp); sfx.connect(wetSend);
+    ambLP = ctx.createBiquadFilter(); ambLP.type = 'lowpass'; ambLP.frequency.value = 16000; ambBus = ctx.createGain(); ambBus.connect(ambLP); ambLP.connect(sfx);
+    musicGain = ctx.createGain(); musicGain.gain.value = vol.musicOn ? vol.music : 0; musicBus = ctx.createGain(); musicBus.connect(musicGain); musicGain.connect(comp);
+    const mWet = ctx.createGain(); mWet.gain.value = 0.18; musicBus.connect(mWet); mWet.connect(reverb);
+    for (let i = 0; i < 10; i++) pool.push(mkPanner(0, 0, 0, 8, 1.2));
+    bandBus = ctx.createGain(); bandPanner = mkPanner(120, 8, 0, 12, 1.0); bandGainNode = ctx.createGain(); bandGainNode.gain.value = 1.25; bandBus.connect(bandGainNode); bandGainNode.connect(bandPanner);
+    const bWet = ctx.createGain(); bWet.gain.value = 0.25; bandBus.connect(bWet); bWet.connect(reverb);
+    choirPanner = mkPanner(28.5, 17, 0, 14, 0.9); flutePanner = mkPanner(-80, -40, 600, 9, 1.1);
     started = true;
-    // build Karplus-Strong lyre notes once
-    FREYGISH.forEach(f => ksCache[f] = pluckBuffer(f)); ksCache[440] = pluckBuffer(440);
-    wind(); crowdBeds(); fireRumble(); waterRunning(); schedule();
+    initInstruments();
+    // ambience beds as soon as their buffers are ready
+    whenReady('wind', b => loopFlat(b, 0.12));
+    whenReady('birds', b => loopFlat(b, 0.14));
+    whenReady('babbleA', b => crowdZones.forEach(([x, y, z, a], i) => { if (i % 2 === 0) loopAt(b, x, y + 3, z, 0.55 * a, 22); }));
+    whenReady('babbleB', b => { crowdZones.forEach(([x, y, z, a], i) => { if (i % 2 === 1) loopAt(b, x, y + 3, z, 0.55 * a, 22); }); for (const z of [460, 640, 820]) loopAt(b, -80, -40, z, 0.5, 20); });
+    whenReady('fire', b => loopAt(b, 4, 26, -6, 0.9, 6, 1.3));
+    whenReady('water', b => loopAt(b, -19, 19, 15, 0.5, 3, 1.5));
+    whenReady('flute', b => { const s = ctx.createBufferSource(); s.buffer = b; s.loop = true; const g = ctx.createGain(); g.gain.value = 0.7; s.connect(g); g.connect(flutePanner); s.start(); });
+    for (const [k, f] of waiting.splice(0)) whenReady(k, f);
     loadRecordings();
+    setInterval(tick, 40);
+    // keep the sound alive: resume after the phone locks / another app takes the audio; rest while the tab is hidden
+    const wake = () => { if (ctx.state !== 'running' && !document.hidden) ctx.resume(); };
+    ['pointerdown', 'keydown', 'touchend'].forEach(ev => addEventListener(ev, wake, { passive: true }));
+    document.addEventListener('visibilitychange', () => { if (document.hidden) ctx.suspend(); else ctx.resume(); });
   }
-  /* real recordings: any of these files placed in /audio are used (see audio/README.md) */
+
+  /* real recordings dropped into /audio replace generated sounds (http only) */
   const REC = {};
-  const REC_FILES = { ambience: 'jerusalem-ambience', crowd: 'crowd', market: 'market', sheep: 'sheep', goat: 'goat', cow: 'cow', doves: 'doves', birds: 'birds', fire: 'fire', flute: 'flute', levites: 'levites', trumpet: 'trumpet' };
   async function loadRecordings() {
     if (location.protocol === 'file:') return;
-    for (const [k, f] of Object.entries(REC_FILES)) for (const ext of ['mp3', 'ogg', 'wav']) {
+    const names = { ambience: 'jerusalem-ambience', crowd: 'crowd', market: 'market', sheep: 'sheep', goat: 'goat', cow: 'cow', fire: 'fire', birds: 'birds', flute: 'flute', levites: 'levites', trumpet: 'trumpet', music: 'music' };
+    for (const [k, f] of Object.entries(names)) for (const ext of ['mp3', 'ogg', 'm4a', 'wav']) {
       try { const r = await fetch(`audio/${f}.${ext}`); if (!r.ok) continue; REC[k] = await ctx.decodeAudioData(await r.arrayBuffer()); break; } catch (e) { /* not present */ }
     }
-    const bed = (buf, x, y, z, gain, ref = 25) => { const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; const g = ctx.createGain(); g.gain.value = gain; s.connect(g); g.connect(x == null ? dry : panner(x, y, z, ref, 1)); s.start(0, Math.random() * buf.duration); };
-    if (REC.ambience) bed(REC.ambience, null, 0, 0, 0.35);
-    if (REC.crowd) for (const [x, y, z] of crowdZones.slice(0, 6)) bed(REC.crowd, x, y, z, 0.5);
-    if (REC.market) for (const z of [330, 520, 760]) bed(REC.market, -80, H.city, z, 0.7, 30);
-    if (REC.fire) bed(REC.fire, 4, 26, -6, 0.9, 8);
-    if (REC.birds) bed(REC.birds, null, 0, 0, 0.15);
+    if (REC.ambience) loopFlat(REC.ambience, 0.35);
+    if (REC.crowd) crowdZones.forEach(([x, y, z, a]) => loopAt(REC.crowd, x, y + 3, z, 0.6 * a, 22));
+    if (REC.market) for (const z of [330, 520, 760]) loopAt(REC.market, -80, -38, z, 0.7, 25);
+    if (REC.birds) loopFlat(REC.birds, 0.2);
+    if (REC.music) { musicSeq.external = loopFlat(REC.music, 1, musicBus); musicSeq.on = false; }
   }
-  function playRec(buf, x, y, z, gain = 0.6, rate = 1, ref = 8) { const s = ctx.createBufferSource(); s.buffer = buf; s.playbackRate.value = rate; const g = ctx.createGain(); g.gain.value = gain; s.connect(g); g.connect(panner(x, y, z, ref, 1.2)); s.start(); }
 
-  /* ---- beds ---- */
-  function wind() {
-    const n = noise(), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'lowpass'; f.frequency.value = 380; g.gain.value = 0.05;
-    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 0.035; lfo.connect(lg); lg.connect(g.gain); lfo.start();
-    n.connect(f); f.connect(g); g.connect(dry);
+  /* ================= instruments + live sequencer ================= */
+  let vioBody, gtrBus, celloBody, voxBus, drumBuf, clapBuf;
+  const ksCache = {};
+  function ks(m, damp, bright, sec) { const k = m + '|' + damp; return ksCache[k] || (ksCache[k] = ksBuffer(midi(m), sec, 32000, damp, bright)); }
+  function initInstruments() {
+    // violin body resonances (shared by every violin note)
+    const chain = (nodes, out) => { nodes.reduce((a, b) => (a.connect(b), b)); nodes[nodes.length - 1].connect(out); return nodes[0]; };
+    const peak = (f, g, q) => { const b = ctx.createBiquadFilter(); b.type = 'peaking'; b.frequency.value = f; b.gain.value = g; b.Q.value = q; return b; };
+    const hp = (f) => { const b = ctx.createBiquadFilter(); b.type = 'highpass'; b.frequency.value = f; return b; };
+    const lp = (f) => { const b = ctx.createBiquadFilter(); b.type = 'lowpass'; b.frequency.value = f; return b; };
+    const pan = (v, out) => { const p = ctx.createStereoPanner(); p.pan.value = v; p.connect(out); return p; };
+    vioBody = (out) => chain([hp(190), peak(290, 6, 1.2), peak(1150, 3, 1), peak(2900, 5, 1.4), lp(6800)], out);
+    gtrBus = (out) => chain([hp(70), peak(110, 4, 1), peak(2400, 2, 1), lp(5200)], out);
+    celloBody = (out) => chain([hp(55), peak(220, 5, 1), lp(2500)], out);
+    voxBus = (out) => { const g = ctx.createGain(); [[730, 6], [1090, 8], [2500, 5]].forEach(([f, q]) => { const b = ctx.createBiquadFilter(); b.type = 'bandpass'; b.frequency.value = f; b.Q.value = q; g.connect(b); b.connect(out); }); return g; };
+    // output routing for the background music and for the band in Ezras Nashim
+    musicSeq.out = { vio: vioBody(pan(0.25, musicBus)), gtr: gtrBus(pan(-0.3, musicBus)), cel: celloBody(pan(-0.1, musicBus)), harp: gtrBus(pan(0.05, musicBus)), vox: voxBus(musicBus), drum: musicBus };
+    bandSeq.out = { vio: vioBody(bandBus), gtr: gtrBus(bandBus), cel: celloBody(bandBus), harp: gtrBus(bandBus), vox: voxBus(bandBus), drum: bandBus };
+    // frame drum (tof) and clap buffers
+    drumBuf = new AudioBuffer({ length: 9000, sampleRate: 32000, numberOfChannels: 1 }); { const d = drumBuf.getChannelData(0); for (let i = 0; i < d.length; i++) { const t = i / 32000; d[i] = Math.sin(2 * Math.PI * (95 - 40 * t) * t) * Math.exp(-t * 18) * 0.9 + (Math.random() * 2 - 1) * Math.exp(-t * 60) * 0.25; } }
+    clapBuf = new AudioBuffer({ length: 5000, sampleRate: 32000, numberOfChannels: 1 }); { const d = clapBuf.getChannelData(0); for (let i = 0; i < d.length; i++) { const t = i / 32000; const burst = (t < 0.01 ? 1 : 0) + (t > 0.012 && t < 0.02 ? 0.8 : 0) + Math.exp(-(t - 0.022) * 70) * (t > 0.022 ? 1 : 0); d[i] = (Math.random() * 2 - 1) * burst * 0.5; } }
   }
-  const crowdZones = [[150, 8, 0, 0.5], [110, 8, -40, 0.4], [0, 2, 160, 0.55], [0, 2, -150, 0.35], [215, 2, 0, 0.35], [34, 15, 0, 0.35], [-10, 17, 40, 0.25], [-80, -32, 320, 0.6], [-80, -38, 480, 0.55], [-80, -46, 680, 0.5], [-80, -54, 860, 0.45]];
-  function crowdBeds() {
-    for (const [x, y, z, a] of crowdZones) {
-      const n = noise(), bp = ctx.createBiquadFilter(), g = ctx.createGain(), p = panner(x, y, z, 25, 1.0);
-      bp.type = 'bandpass'; bp.frequency.value = 520; bp.Q.value = 0.9; g.gain.value = 0.09 * a;
-      const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.11 + Math.random() * 0.2; lg.gain.value = 0.04 * a; lfo.connect(lg); lg.connect(g.gain); lfo.start();
-      n.connect(bp); bp.connect(g); g.connect(p);
+  function playNote(seq, ev, t) {
+    const o = seq.out, v = ev.vel || 0.8;
+    if (ev.i === 'vio' || ev.i === 'cel') {
+      const f = midi(ev.m), a = ctx.createOscillator(), b = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain(), g = ctx.createGain();
+      a.type = b.type = 'sawtooth'; a.frequency.value = f; b.frequency.value = f * 1.0035; lfo.frequency.value = ev.i === 'vio' ? 5.6 : 4.8;
+      lg.gain.setValueAtTime(0, t); lg.gain.linearRampToValueAtTime(f * (ev.i === 'vio' ? 0.0065 : 0.004), t + Math.min(0.35, ev.d * 0.5));
+      lfo.connect(lg); lg.connect(a.frequency); lg.connect(b.frequency); a.connect(g); b.connect(g); g.connect(o[ev.i]);
+      const peak = (ev.i === 'vio' ? 0.085 : 0.07) * v, att = ev.i === 'vio' ? 0.07 : 0.12, end = t + ev.d;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(peak, t + att); g.gain.linearRampToValueAtTime(peak * 0.82, t + Math.max(att + 0.05, ev.d * 0.6)); g.gain.linearRampToValueAtTime(0.0001, end + 0.14);
+      [a, b, lfo].forEach(n => { n.start(t); n.stop(end + 0.2); });
+    } else if (ev.i === 'gtr' || ev.i === 'harp') {
+      const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = ks(ev.m, ev.i === 'harp' ? 0.4992 : 0.4975, ev.i === 'harp' ? 0.6 : 0.35, 2.4); g.gain.value = (ev.i === 'harp' ? 0.32 : 0.36) * v; s.connect(g); g.connect(o[ev.i]); s.start(t);
+    } else if (ev.i === 'vox') {
+      const a = ctx.createOscillator(), lfo = ctx.createOscillator(), lg = ctx.createGain(), g = ctx.createGain(); a.type = 'sawtooth'; a.frequency.value = midi(ev.m); lfo.frequency.value = 5; lg.gain.value = 2.5; lfo.connect(lg); lg.connect(a.frequency); a.connect(g); g.connect(o.vox);
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09 * v, t + 0.05); g.gain.linearRampToValueAtTime(0.0001, t + ev.d); [a, lfo].forEach(n => { n.start(t); n.stop(t + ev.d + 0.05); });
+    } else if (ev.i === 'drum' || ev.i === 'clap') {
+      const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = ev.i === 'drum' ? drumBuf : clapBuf; s.playbackRate.value = ev.i === 'drum' ? (ev.m || 1) : 0.9 + Math.random() * 0.2; g.gain.value = (ev.i === 'drum' ? 0.5 : 0.25) * v; s.connect(g); g.connect(o.drum); s.start(t);
     }
   }
-  function fireRumble() {
-    const n = noise(), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'lowpass'; f.frequency.value = 160; g.gain.value = 0.5;
-    n.connect(f); f.connect(g); g.connect(panner(4, 26, -6, 6, 1.4));
+  /* ---- original niggunim (melodies by this project) ---- */
+  const CH = { D: [50, 57, 62, 66], Cm: [48, 55, 60, 63], Gm: [43, 55, 58, 62], Eb: [51, 58, 63, 67], Am: [45, 52, 57, 60, 64], Dm: [50, 57, 62, 65], E: [40, 52, 56, 59, 64], F: [41, 53, 57, 60, 65], C: [48, 55, 60, 64], G: [43, 55, 59, 62] };
+  const TRACKS = {
+    // slow, longing — D freygish (Ahava Rabbah)
+    yearning: { bpm: 68, bar: 4, pat: 'arp', loops: 2, harp: true, mel: [[69, 1], [70, .5], [69, .5], [67, 1], [66, 1], [67, 1.5], [66, .5], [63, 1], [62, 1], [66, 1], [67, 1], [69, 1], [70, 1], [69, 3], [0, 1], [72, 1], [70, .5], [69, .5], [70, 1], [69, 1], [67, 1], [66, 1], [67, 2], [66, 1], [63, .5], [66, .5], [67, 1], [66, 1], [62, 3], [0, 1], [74, 2], [72, 1], [70, 1], [69, 1.5], [70, .5], [72, 1], [70, 1], [69, 1], [67, 1], [66, 1], [67, 1], [69, 4], [70, 1], [69, 1], [67, 1], [66, 1], [67, 1], [66, .5], [63, .5], [66, 2], [63, 1], [62, 1], [63, 1], [66, 1], [62, 4]], chords: ['D', 'Cm', 'D', 'D', 'Cm', 'Gm', 'D', 'D', 'Gm', 'D', 'Cm', 'D', 'Gm', 'D', 'Cm', 'D'] },
+    // lively dance — D freygish
+    dance: { bpm: 122, bar: 2, pat: 'oompah', loops: 3, drum: true, mel: [[74, .5], [72, .5], [70, .5], [69, .5], [70, .5], [69, .5], [67, .5], [66, .5], [67, .5], [69, .5], [70, .5], [69, .5], [66, 1], [62, 1], [62, .5], [66, .5], [69, .5], [66, .5], [67, .5], [69, .5], [70, 1], [69, .5], [67, .5], [66, .5], [63, .5], [62, 2], [69, .5], [70, .5], [72, .5], [74, .5], [75, .5], [74, .5], [72, .5], [70, .5], [72, .5], [70, .5], [69, .5], [67, .5], [69, 2], [70, .5], [69, .5], [67, .5], [66, .5], [67, .5], [66, .5], [63, .5], [66, .5], [63, .5], [62, .5], [63, .5], [66, .5], [62, 2]], chords: ['D', 'Cm', 'Gm', 'D', 'D', 'Gm', 'Cm', 'D', 'D', 'Eb', 'Cm', 'D', 'Cm', 'D', 'Cm', 'D'] },
+    // tender waltz — A minor
+    tender: { bpm: 84, bar: 3, pat: 'waltz', loops: 2, mel: [[64, 1], [65, 1], [64, 1], [62, 2], [60, 1], [59, 1], [60, 1], [62, 1], [64, 3], [69, 1.5], [67, .5], [65, 1], [64, 1], [62, 1], [60, 1], [62, 1], [64, 1], [65, 1], [64, 3], [65, 1], [67, 1], [69, 1], [72, 2], [71, 1], [69, 1], [67, 1], [65, 1], [64, 3], [62, 1], [64, 1], [65, 1], [64, 1], [62, 1], [60, 1], [59, 1.5], [60, .5], [62, 1], [57, 3]], chords: ['Am', 'Dm', 'E', 'Am', 'F', 'C', 'Dm', 'E', 'Dm', 'F', 'Dm', 'Am', 'Dm', 'Am', 'E', 'Am'] },
+    // joyful — D minor rising to F
+    simcha: { bpm: 104, bar: 4, pat: 'oompah', loops: 2, drum: true, mel: [[62, .5], [65, .5], [69, 1], [69, .5], [67, .5], [65, 1], [67, .5], [69, .5], [70, 1], [69, 2], [65, .5], [67, .5], [69, 1], [67, .5], [65, .5], [64, 1], [62, 3], [0, 1], [69, .5], [72, .5], [74, 1], [72, .5], [70, .5], [69, 1], [70, .5], [72, .5], [70, .5], [69, .5], [67, 2], [65, .5], [67, .5], [69, 1], [67, .5], [65, .5], [64, .5], [61, .5], [62, 4]], chords: ['Dm', 'G', 'Dm', 'Dm', 'F', 'C', 'Dm', 'Dm'] },
+  };
+  function compile(name, bandMode = false) {
+    const tr = TRACKS[name], spb = 60 / tr.bpm, ev = []; let b = 0;
+    for (const [m, d] of tr.mel) { if (m) { ev.push({ b, i: 'vio', m, d: d * spb * 0.98, vel: 0.85 + (b % tr.bar === 0 ? 0.15 : 0) }); if (bandMode) ev.push({ b, i: 'vox', m: m - 12, d: d * spb * 0.9, vel: 0.8 }); } b += d; }
+    const total = Math.ceil(b / tr.bar) * tr.bar, bars = total / tr.bar;
+    for (let k = 0; k < bars; k++) {
+      const ch = CH[tr.chords[k % tr.chords.length]], b0 = k * tr.bar;
+      ev.push({ b: b0, i: 'cel', m: ch[0], d: tr.bar * spb * 0.95, vel: 0.7 });
+      if (tr.pat === 'arp') { const seq = [0, 1, 2, 3, 2, 1, 2, 3]; for (let s = 0; s < tr.bar * 2; s++) ev.push({ b: b0 + s * 0.5, i: tr.harp && k % 2 ? 'harp' : 'gtr', m: ch[seq[s % 8] % ch.length] + (s % 4 === 3 ? 12 : 0), vel: 0.7 }); }
+      if (tr.pat === 'waltz') { ev.push({ b: b0, i: 'gtr', m: ch[0], vel: 0.9 }); for (const s of [1, 2]) ch.slice(1).forEach((m, j) => ev.push({ b: b0 + s + j * 0.015, i: 'gtr', m, vel: 0.55 })); }
+      if (tr.pat === 'oompah') for (let s = 0; s < tr.bar; s++) { ev.push({ b: b0 + s, i: 'gtr', m: s % 2 ? ch[1] - 12 + 12 : ch[0], vel: 0.9 }); ch.slice(1).forEach((m, j) => ev.push({ b: b0 + s + 0.5 + j * 0.012, i: 'gtr', m, vel: 0.5 })); }
+      if (tr.drum || bandMode) for (let s = 0; s < tr.bar; s++) { ev.push({ b: b0 + s, i: 'drum', m: s % 2 ? 1.25 : 1, vel: s === 0 ? 1 : 0.7 }); if (bandMode) ev.push({ b: b0 + s + 0.5, i: 'clap', vel: 0.7 }); }
+    }
+    ev.sort((a, c) => a.b - c.b); ev.forEach(e => e.t = e.b * spb);
+    return { ev, len: total * spb, loops: tr.loops };
   }
-  function waterRunning() {
-    const n = noise(), f = ctx.createBiquadFilter(), g = ctx.createGain(); f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 0.6; g.gain.value = 0.12;
-    n.connect(f); f.connect(g); g.connect(panner(-19, 19, 15, 3, 1.6));
+  const musicSeq = { on: false, order: ['yearning', 'dance', 'tender', 'simcha'], cur: -1, t0: 0, idx: 0, loop: 0, song: null, out: null, external: null };
+  const bandSeq = { on: false, t0: 0, idx: 0, loop: 0, song: null, out: null };
+  function seqStart(seq, name, at, bandMode) { seq.song = compile(name, bandMode); seq.t0 = at; seq.idx = 0; seq.loop = 0; seq.name = name; }
+  function seqTick(seq, now, next) {
+    if (!seq.on || !seq.song) return;
+    const ev = seq.song.ev;
+    while (true) {
+      if (seq.idx >= ev.length) { seq.loop++; seq.t0 += seq.song.len; seq.idx = 0; if (next && seq.loop >= seq.song.loops) { next(seq.t0 + 1.2); return; } }
+      const e = ev[seq.idx], t = seq.t0 + e.t; if (t > now + 0.5) break;
+      if (t > now - 0.05) playNote(seq, e, t);
+      seq.idx++;
+    }
+  }
+  function nextSong(at) { if (musicSeq.external) return; musicSeq.cur = (musicSeq.cur + 1) % musicSeq.order.length; seqStart(musicSeq, musicSeq.order[musicSeq.cur], at); }
+
+  /* ================= scheduler ================= */
+  let duck = 1, duckT = 1, nextLev = 90;
+  function tick() {
+    if (!started || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    seqTick(musicSeq, now, nextSong);
+    seqTick(bandSeq, now, (at) => seqStart(bandSeq, bandSeq.name === 'dance' ? 'simcha' : 'dance', at, true));
+    // near the band, its music takes over from the background music
+    let bandDuck = 1;
+    if (bandSeq.on) { const d = Math.hypot(listenerPos.x - bandPos.x, listenerPos.z - bandPos.z); bandDuck = clamp((d - 45) / 90, 0.08, 1); }
+    duck += (Math.min(duckT, bandDuck) - duck) * 0.08;
+    musicGain.gain.setTargetAtTime((vol.musicOn ? vol.music : 0) * duck, now, 0.1);
+    bandGainNode.gain.setTargetAtTime(vol.musicOn ? 1.2 : 0.7, now, 0.2);
+    if (now > nextLev) { nextLev = now + 100 + Math.random() * 60; dispatchEvent(new Event('levites')); }
   }
 
-  /* ---- one-shots ---- */
-  const VOW = [[730, 1090], [530, 1840], [270, 2290], [570, 840], [440, 1020], [660, 1700]];
-  function syllable(x, y, z, female, t, loud = 1) {
-    const p = panner(x, y, z, 6, 1.3), g = ctx.createGain(); g.connect(p);
-    const dur = 0.08 + Math.random() * 0.2, f0 = (female ? 205 : 112) * (0.85 + Math.random() * 0.35);
-    const o = ctx.createOscillator(); o.type = 'sawtooth';
-    o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * (Math.random() < 0.5 ? 1.12 : 0.88), t + dur);
-    const jit = ctx.createOscillator(), jg = ctx.createGain(); jit.frequency.value = 23 + Math.random() * 20; jg.gain.value = f0 * 0.02; jit.connect(jg); jg.connect(o.frequency);
-    const v1 = VOW[Math.random() * VOW.length | 0], v2 = VOW[Math.random() * VOW.length | 0];
-    const src = ctx.createGain(); o.connect(src);
-    const br = ctx.createBufferSource(); br.buffer = noiseBuf; const bg = ctx.createGain(); bg.gain.value = 0.25; br.connect(bg); bg.connect(src);
-    [0, 1].forEach(k => { const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 5; f.frequency.setValueAtTime(v1[k], t); f.frequency.linearRampToValueAtTime(v2[k], t + dur); src.connect(f); f.connect(g); });
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3000; src.connect(lp); const lg = ctx.createGain(); lg.gain.value = 0.12; lp.connect(lg); lg.connect(g);
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.045 * loud, t + 0.03); g.gain.linearRampToValueAtTime(0.03 * loud, t + dur * 0.7); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.04);
-    o.start(t); jit.start(t); br.start(t, Math.random() * 3); [o, jit, br].forEach(n => n.stop(t + dur + 0.08));
+  /* ================= public sound calls ================= */
+  function levites(len, x = 28.5, y = 17, z = 0, loud = 1) {
+    if (!started) return 0;
+    const buf = REC.levites || PRE.choir; if (!buf) return 0;
+    setPos(choirPanner, x, y, z); const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = buf; g.gain.value = 0.9 * loud; s.connect(g); g.connect(choirPanner); s.start();
+    duckT = 0.35; setTimeout(() => duckT = 1, buf.duration * 1000);
+    return buf.duration;
   }
-  function phrase(x, y, z, female, t) { const n = 3 + (Math.random() * 6 | 0); let tt = t; for (let i = 0; i < n; i++) { syllable(x, y, z, female, tt); tt += 0.11 + Math.random() * 0.12; } }
-  function chirp(x, y, z, t) {
-    const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine';
-    const base = 2800 + Math.random() * 2600; o.frequency.setValueAtTime(base, t); o.frequency.exponentialRampToValueAtTime(base * (0.6 + Math.random() * 0.8), t + 0.08);
-    o.connect(g); g.connect(panner(x, y, z, 20, 0.8)); env(g, t, 0.005, 0.05, 0.09); o.start(t); o.stop(t + 0.15);
-  }
-  function bleat(x, y, z, t) {
-    const o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter(), vib = ctx.createOscillator(), vg = ctx.createGain();
-    o.type = 'sawtooth'; o.frequency.value = 330 + Math.random() * 120; vib.frequency.value = 7; vg.gain.value = 18; vib.connect(vg); vg.connect(o.frequency);
-    f.type = 'bandpass'; f.frequency.value = 1300; f.Q.value = 2; o.connect(f); f.connect(g); g.connect(panner(x, y, z, 10, 1));
-    env(g, t, 0.05, 0.12, 0.65); o.start(t); vib.start(t); o.stop(t + 0.8); vib.stop(t + 0.8);
-  }
-  function moo(x, y, z, deep = 1) {
-    const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain(), f = ctx.createBiquadFilter(), f2 = ctx.createBiquadFilter();
-    o.type = 'sawtooth'; o.frequency.setValueAtTime(95 / deep, t); o.frequency.linearRampToValueAtTime(130 / deep, t + 0.5); o.frequency.linearRampToValueAtTime(85 / deep, t + 1.4);
-    f.type = 'bandpass'; f.frequency.setValueAtTime(300, t); f.frequency.linearRampToValueAtTime(700, t + 0.6); f.Q.value = 3; f2.type = 'lowpass'; f2.frequency.value = 1200;
-    o.connect(f); f.connect(f2); f2.connect(g); g.connect(panner(x, y, z, 10, 1)); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.35, t + 0.25); g.gain.setValueAtTime(0.35, t + 1.1); g.gain.linearRampToValueAtTime(0.0001, t + 1.5); o.start(t); o.stop(t + 1.6);
-  }
-  function coo(x, y, z) {
-    const t = ctx.currentTime; [0, 0.35, 0.62].forEach((dt, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; const f = [420, 520, 400][i]; o.frequency.setValueAtTime(f, t + dt); o.frequency.linearRampToValueAtTime(f * 0.85, t + dt + 0.25); o.connect(g); g.connect(panner(x, y, z, 4, 1.4)); env(g, t + dt, 0.04, [0.05, 0.08, 0.04][i], 0.25); o.start(t + dt); o.stop(t + dt + 0.35); });
-  }
+  function trumpets(x = -9, y = 20, z = 24) { if (!started) return 0; const b = REC.trumpet || PRE.trumpets; if (!b) return 0; oneShot(b, x, y, z, 1, 1, 14); return b.duration; }
+  function bell(x, y, z, d2) { if (d2 > 90 * 90) return; oneShot(PRE.bell, x, y, z, 0.35, 0.95 + Math.random() * 0.1, 3); }
+  const ANIM = { sheep: ['sheep0', 'sheep1'], lamb: ['lamb0'], goat: ['goat0'], calf: ['calf0'], ox: ['ox0'] };
   function animal(kind, x, y, z) {
     if (!started) return;
-    const recs = { sheep: REC.sheep, lamb: REC.sheep, goat: REC.goat || REC.sheep, calf: REC.cow, ox: REC.cow };
-    if (recs[kind]) return playRec(recs[kind], x, y, z, 0.7, kind === 'lamb' ? 1.25 : kind === 'goat' && !REC.goat ? 0.9 : 0.95 + Math.random() * 0.1);
-    if (kind === 'calf') return moo(x, y, z, 0.8); if (kind === 'ox') return moo(x, y, z, 1.15);
-    const t = ctx.currentTime; bleat(x, y, z, t);
+    const rec = { sheep: REC.sheep, lamb: REC.sheep, goat: REC.goat, calf: REC.cow, ox: REC.cow }[kind];
+    if (rec) return oneShot(rec, x, y, z, 0.7, kind === 'lamb' ? 1.25 : 0.95 + Math.random() * 0.1, 8);
+    const keys = ANIM[kind] || ANIM.sheep; oneShot(PRE[keys[Math.floor(Math.random() * keys.length)]], x, y, z, 0.6, 0.92 + Math.random() * 0.16, 7);
   }
-  let fluteBusy = 0;
-  const CHALIL = [293.66, 311.13, 369.99, 392.0, 440.0, 466.16, 523.25, 587.33];
-  function flute(x, y, z) {
-    if (!started || ctx.currentTime < fluteBusy) return;
-    if (REC.flute) { playRec(REC.flute, x, y, z, 0.6, 1, 10); fluteBusy = ctx.currentTime + REC.flute.duration; return; }
-    let t = ctx.currentTime + 0.05; const p = panner(x, y, z, 10, 1);
-    const tune = [4, 5, 4, 3, 2, 3, 4, 6, 5, 4, 3, 2, 1, 2, 0, 0];
-    for (let i = 0; i < tune.length; i++) {
-      const d = [0.45, 0.3, 0.6, 0.3, 0.9][i % 5], f = CHALIL[tune[i]] * 2;
-      const o = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(), vib = ctx.createOscillator(), vg = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = f; o2.type = 'triangle'; o2.frequency.value = f * 2; const g2 = ctx.createGain(); g2.gain.value = 0.15; o2.connect(g2); g2.connect(g);
-      vib.frequency.value = 5.5; vg.gain.value = f * 0.008; vib.connect(vg); vg.connect(o.frequency);
-      const br = ctx.createBufferSource(); br.buffer = noiseBuf; const bf = ctx.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = f * 2; bf.Q.value = 3; const bgn = ctx.createGain(); bgn.gain.value = 0.25; br.connect(bf); bf.connect(bgn); bgn.connect(g);
-      o.connect(g); g.connect(p);
-      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.09, t + 0.06); g.gain.setValueAtTime(0.08, t + d - 0.05); g.gain.linearRampToValueAtTime(0.0001, t + d);
-      [o, o2, vib].forEach(n => { n.start(t); n.stop(t + d + 0.05); }); br.start(t, Math.random() * 3); br.stop(t + d);
-      t += d;
-    }
-    fluteBusy = t + 2.5;
-  }
-  function crackle(t) {
-    const s = ctx.createBufferSource(), g = ctx.createGain(), f = ctx.createBiquadFilter(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 1800;
-    s.connect(f); f.connect(g); g.connect(panner(4 + Math.random() * 3, 26, -6, 6, 1.4)); env(g, t, 0.002, 0.4 * Math.random(), 0.03); s.start(t, Math.random() * 3, 0.06);
-  }
-  function pluckBuffer(f) {
-    const sr = ctx.sampleRate, N = Math.round(sr / f), len = sr * 2.4, b = ctx.createBuffer(1, len, sr), d = b.getChannelData(0), ring = new Float32Array(N);
-    for (let i = 0; i < N; i++) ring[i] = Math.random() * 2 - 1;
-    let idx = 0; for (let i = 0; i < len; i++) { const nx = (idx + 1) % N; const v = ring[idx]; ring[idx] = 0.4985 * (v + ring[nx]); d[i] = v; idx = nx; }
-    return b;
-  }
-  function pluck(f, t, x = 28.5, y = 17, z = 0, gain = 0.35) {
-    const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = ksCache[f] || pluckBuffer(f); g.gain.value = gain; s.connect(g); g.connect(panner(x, y, z, 8, 1)); s.start(t);
-  }
-  function voice(f, t, dur, x, y, z, gain, vowel = 0) {
-    const o1 = ctx.createOscillator(), o2 = ctx.createOscillator(), g = ctx.createGain(); o1.type = o2.type = 'sawtooth';
-    o1.frequency.value = f; o2.frequency.value = f * 1.004; const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5 + Math.random(); vg.gain.value = f * 0.012; vib.connect(vg); vg.connect(o1.frequency); vg.connect(o2.frequency);
-    const v = VOW[vowel]; const p = panner(x, y, z, 10, 1);
-    [v[0], v[1], 2600].forEach((ff, i) => { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = 7 - i * 2; o1.connect(bp); o2.connect(bp); bp.connect(g); });
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(gain, t + 0.25); g.gain.setValueAtTime(gain, t + dur - 0.2); g.gain.linearRampToValueAtTime(0.0001, t + dur + 0.1);
-    g.connect(p); [o1, o2, vib].forEach(o => { o.start(t); o.stop(t + dur + 0.2); });
-  }
-  /** the Leviim: a slow chant in a freygish mode over a drone, with kinnoros */
-  function levites(lengthSec = 34, x = 28.5, y = 17, z = 0, loud = 1) {
+  function flute(x, y, z) { if (started) setPos(flutePanner, x, y, z); }
+  let lastVoice = -1;
+  function chatter(x, y, z, kind) {
     if (!started) return;
-    if (REC.levites) { playRec(REC.levites, x, y, z, 0.8 * loud, 1, 14); return REC.levites.duration; }
-    const t0 = ctx.currentTime + 0.1; let t = t0;
-    voice(FREYGISH[0] / 2, t0, lengthSec, x, y, z - 6, 0.05 * loud, 4); voice(FREYGISH[4] / 2, t0, lengthSec, x, y, z + 6, 0.035 * loud, 3);
-    const melody = [4, 5, 4, 3, 2, 3, 4, 4, 5, 6, 5, 4, 3, 2, 1, 2, 3, 2, 1, 0, 0, 2, 3, 4, 5, 4, 3, 4, 2, 1, 0];
-    let i = 0;
-    while (t < t0 + lengthSec - 2) {
-      const n = melody[i % melody.length], d = [0.9, 0.6, 1.2, 0.6, 1.8][i % 5] * 1.15;
-      for (let v = 0; v < 4; v++) voice(FREYGISH[n] * (v === 3 ? 0.5 : 1) * (1 + (v - 1.5) * 0.002), t, d, x, y, z + (v - 1.5) * 4, 0.04 * loud, [0, 3, 4, 0][v]);
-      pluck(FREYGISH[n], t, x, y, z + ((i % 3) - 1) * 8, 0.28 * loud); if (i % 2 === 0) pluck(FREYGISH[Math.max(0, n - 2)] / 2 * 2, t + d / 2, x, y, z - 10, 0.18 * loud);
-      if (i % 8 === 0) cymbal(t, x, y, z);
-      t += d; i++;
-    }
-    return lengthSec;
+    const ids = kind === 'f' ? [5, 6, 7, 8] : kind === 'c' ? [9] : [0, 1, 2, 3, 4];
+    let id = ids[Math.floor(Math.random() * ids.length)]; if (id === lastVoice) id = ids[(ids.indexOf(id) + 1) % ids.length]; lastVoice = id;
+    const b = PRE['voice' + id]; if (!b) return;
+    oneShot(b, x, y, z, 0.55, 0.94 + Math.random() * 0.12, 3.5);
   }
-  function cymbal(t, x, y, z) { const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf; f.type = 'highpass'; f.frequency.value = 5000; s.connect(f); f.connect(g); g.connect(panner(x, y, z, 8, 1)); env(g, t, 0.003, 0.18, 1.6); s.start(t, Math.random() * 2, 2); }
-  /** silver chatzotzros: tekiah · teruah · tekiah */
-  function trumpets(x = -17, y = 20, z = -24) {
-    if (!started) return 0;
-    if (REC.trumpet) { playRec(REC.trumpet, x, y, z, 0.9, 1, 14); return REC.trumpet.duration; }
-    let t = ctx.currentTime + 0.1;
-    const blast = (t, d) => { [466, 470].forEach((f, k) => { const o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(f * 0.94, t); o.frequency.linearRampToValueAtTime(f, t + 0.06); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, t); lp.frequency.linearRampToValueAtTime(3200, t + 0.08); lp.Q.value = 2; o.connect(lp); lp.connect(g); g.connect(panner(x, y, z + k * 4, 14, 0.8)); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.16, t + 0.05); g.gain.setValueAtTime(0.16, t + d - 0.08); g.gain.linearRampToValueAtTime(0.0001, t + d); o.start(t); o.stop(t + d + 0.05); }); };
-    blast(t, 2.2); t += 2.6; for (let i = 0; i < 9; i++) { blast(t, 0.18); t += 0.24; } t += 0.4; blast(t, 2.2); t += 2.4;
-    return t - ctx.currentTime;
-  }
-  function bell(x, y, z, d2) {
-    if (!started || d2 > 90 * 90) return; const t = ctx.currentTime;
-    [2637, 3951, 5274].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f * (1 + Math.random() * 0.01); o.connect(g); g.connect(panner(x, y, z, 3, 1.5)); env(g, t + i * 0.02, 0.002, 0.05 / (i + 1), 0.6); o.start(t); o.stop(t + 0.8); });
-  }
-  function coin() { if (!started) return; const t = ctx.currentTime; for (let i = 0; i < 4; i++) { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 3400 + Math.random() * 1600; o.connect(g); g.connect(dry); env(g, t + i * 0.09, 0.002, 0.12, 0.25); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.3); } }
-  function splash() { if (!started) return; const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf; f.type = 'bandpass'; f.frequency.value = 1800; s.connect(f); f.connect(g); g.connect(dry); env(g, ctx.currentTime, 0.05, 0.4, 1.4); s.start(); s.stop(ctx.currentTime + 1.6); }
-  function step(soft) { if (!started) return; const t = ctx.currentTime, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noiseBuf; f.type = 'lowpass'; f.frequency.value = soft ? 500 : 1100; s.connect(f); f.connect(g); g.connect(dry); g.connect(wet); env(g, t, 0.003, soft ? 0.06 : 0.11, 0.08); s.start(t, Math.random() * 3, 0.12); }
-  function shofarHorn() { // used for the "Shofar" demo on the gallery? kept for Rosh HaShanah mode
-    if (!started) return; const t = ctx.currentTime, o = ctx.createOscillator(), lp = ctx.createBiquadFilter(), g = ctx.createGain(); o.type = 'sawtooth'; o.frequency.setValueAtTime(330, t); o.frequency.linearRampToValueAtTime(495, t + 0.4); lp.type = 'lowpass'; lp.frequency.value = 1800; o.connect(lp); lp.connect(g); g.connect(dry); g.connect(wet); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.2, t + 0.1); g.gain.setValueAtTime(0.2, t + 2.5); g.gain.linearRampToValueAtTime(0.0001, t + 2.8); o.start(t); o.stop(t + 3);
-  }
-
-
-  /* ---- opening music: drone, harp arpeggios and a soft choir in a freygish mode (non-spatial) ---- */
-  let musicBus = null;
-  function introMusic(len = 32) {
+  function bandBeat() { if (!started || !bandSeq.on || !bandSeq.song) return null; return (ctx.currentTime - bandSeq.t0) * TRACKS[bandSeq.name].bpm / 60; }
+  function band(x, y, z, on) {
     if (!started) return;
-    musicBus = ctx.createGain(); musicBus.gain.value = 0.0001; musicBus.connect(dry); musicBus.connect(wet);
-    const t0 = ctx.currentTime + 0.1; musicBus.gain.exponentialRampToValueAtTime(0.9, t0 + 3);
-    const drone = (f, g) => { const o = ctx.createOscillator(), o2 = ctx.createOscillator(), lp = ctx.createBiquadFilter(), gn = ctx.createGain(); o.type = 'sawtooth'; o2.type = 'sawtooth'; o.frequency.value = f; o2.frequency.value = f * 1.003; lp.type = 'lowpass'; lp.frequency.value = 420; gn.gain.value = g; o.connect(lp); o2.connect(lp); lp.connect(gn); gn.connect(musicBus); o.start(t0); o2.start(t0); o.stop(t0 + len + 4); o2.stop(t0 + len + 4); };
-    drone(73.42, 0.05); drone(110, 0.03);
-    const choir = (f, t, d, g) => { [0, 3].forEach((vw, k) => { const o = ctx.createOscillator(), gg = ctx.createGain(); o.type = 'sawtooth'; o.frequency.value = f * (1 + k * 0.004); const v = VOW[vw]; [v[0], v[1]].forEach((ff, i) => { const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = ff; bp.Q.value = 6 - i * 2; o.connect(bp); bp.connect(gg); }); gg.gain.setValueAtTime(0.0001, t); gg.gain.linearRampToValueAtTime(g, t + d * 0.4); gg.gain.linearRampToValueAtTime(0.0001, t + d); gg.connect(musicBus); o.start(t); o.stop(t + d + 0.1); }); };
-    const scale = [146.83, 155.56, 185.0, 196.0, 220.0, 233.08, 261.63, 293.66, 311.13, 369.99, 392.0, 440.0];
-    const prog = [[0, 2, 4, 7], [1, 3, 5, 8], [0, 2, 4, 7], [4, 6, 8, 11], [3, 5, 7, 10], [0, 2, 4, 7]];
-    let t = t0 + 1;
-    for (let bar = 0; t < t0 + len - 2; bar++) {
-      const ch = prog[bar % prog.length];
-      for (let i = 0; i < 8; i++) { const f = scale[ch[i % 4]] * (i >= 4 ? 2 : 1); const s = ctx.createBufferSource(), g = ctx.createGain(); s.buffer = ksCache[scale[ch[i % 4]]] || pluckBuffer(f); s.playbackRate.value = f / scale[ch[i % 4]]; g.gain.value = 0.32; s.connect(g); g.connect(musicBus); s.start(t + i * 0.32); }
-      choir(scale[ch[0]], t, 2.6, 0.035); choir(scale[ch[2]], t + 0.1, 2.6, 0.025);
-      t += 2.6;
-    }
-    return len;
+    setPos(bandPanner, x, y, z); bandPos.x = x; bandPos.z = z;
+    if (on && !bandSeq.on) { bandSeq.on = true; seqStart(bandSeq, 'dance', ctx.currentTime + 0.2, true); }
+    if (!on && bandSeq.on) bandSeq.on = false;
   }
-  function stopMusic(fade = 2.5) { if (!musicBus) return; const g = musicBus.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setValueAtTime(Math.max(g.value, 0.0001), t); g.exponentialRampToValueAtTime(0.0001, t + fade); const mb = musicBus; setTimeout(() => mb.disconnect(), fade * 1000 + 300); musicBus = null; }
-  function chime() { if (!started) return; const t = ctx.currentTime; [784, 988, 1175].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(dry); g.connect(wet); env(g, t + i * 0.12, 0.01, 0.08, 1.2); o.start(t + i * 0.12); o.stop(t + i * 0.12 + 1.4); }); }
+  function env1(g, t, a, peak, d) { g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+  function coin() { if (!started) return; const t = ctx.currentTime; for (let i = 0; i < 4; i++) { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 3400 + Math.random() * 1600; o.connect(g); g.connect(sfx); env1(g, t + i * 0.09, 0.002, 0.1, 0.25); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.3); } }
+  let nb = null; const noise = () => nb || (nb = (() => { const b = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; return b; })());
+  function splash() { if (!started) return; const s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noise(); f.type = 'bandpass'; f.frequency.value = 1800; s.connect(f); f.connect(g); g.connect(sfx); env1(g, ctx.currentTime, 0.05, 0.35, 1.2); s.start(); s.stop(ctx.currentTime + 1.4); }
+  function step() { if (!started) return; const t = ctx.currentTime, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); s.buffer = noise(); f.type = 'lowpass'; f.frequency.value = 900; s.connect(f); f.connect(g); g.connect(sfx); env1(g, t, 0.003, 0.08, 0.07); s.start(t, Math.random() * 0.8, 0.1); }
+  function chime() { if (!started) return; const t = ctx.currentTime; [784, 988, 1175].forEach((f, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(sfx); env1(g, t + i * 0.12, 0.01, 0.07, 1.1); o.start(t + i * 0.12); o.stop(t + i * 0.12 + 1.3); }); }
+  function musicOn(on = true) { if (!started || musicSeq.external) return; if (on && !musicSeq.on) { musicSeq.on = true; if (!musicSeq.song) { musicSeq.cur = -1; nextSong(ctx.currentTime + 0.3); } } }
 
-  /* ---- scheduler for the living soundscape ---- */
-  let nextSong = 25;
-  function schedule() {
-    setInterval(() => {
-      if (!started || ctx.state !== 'running') return;
-      const t = ctx.currentTime;
-      // babble of the crowds near the listener
-      for (let k = 0; k < 3; k++) {
-        const z = crowdZones[Math.random() * crowdZones.length | 0];
-        const x = z[0] + (Math.random() - 0.5) * 60, zz = z[2] + (Math.random() - 0.5) * 60;
-        const d = Math.hypot(x - listenerPos.x, zz - listenerPos.z);
-        if (d < 120 && Math.random() < 0.5) phrase(x, z[1] + 3, zz, Math.random() < 0.35, t + Math.random() * 0.1);
-      }
-      // close-by npcs talk
-      if (typeof npcs !== 'undefined' && Math.random() < 0.5) {
-        const n = npcs[Math.random() * npcs.length | 0];
-        if (n && !n.animal && Math.hypot(n.x - listenerPos.x, n.z - listenerPos.z) < 25) phrase(n.x, n.y + 3, n.z, n.p.spec.type === 'woman', t);
-      }
-      if (Math.random() < 0.06) chirp(listenerPos.x + (Math.random() - 0.5) * 80, 40 + Math.random() * 30, listenerPos.z + (Math.random() - 0.5) * 80, t);
-      if (Math.random() < 0.012) bleat(Math.random() < 0.5 ? 0 : -60, 4, -235, t);
-      if (Math.random() < 0.35 && !REC.fire) crackle(t);
-      if (listenerPos.z > 290 && Math.random() < 0.05) { if (REC.doves) playRec(REC.doves, listenerPos.x + (Math.random() - 0.5) * 20, listenerPos.y, listenerPos.z + (Math.random() - 0.5) * 40, 0.5); else coo(-80 + (Math.random() < 0.5 ? -7 : 7), listenerPos.y + 1, listenerPos.z + (Math.random() - 0.5) * 40); }
-      nextSong -= 0.12;
-      if (nextSong <= 0) { nextSong = 95; window.dispatchEvent(new Event('levites')); }
-    }, 120);
+  /* ================= speech: real human voices from the browser ================= */
+  const SPEECH_LANG = { en: 'en', he: 'he', es: 'es', yi: null };
+  const FEMALE = /female|woman|samantha|victoria|karen|moira|tessa|zira|aria|jenny|ava|emma|michelle|sonia|libby|salli|joanna|kendra|kimberly|ivy|monica|paulina|helena|laura|carmit|hila|elvira|dalia|lucia|sabina|ximena|camila|paula|susan|hazel|serena|allison|nora|ellen|fiona|catherine|zuzana|amelie|ana|elena|isabela|lupe|penelope|lia|natasha|clara/i;
+  const MALE = /\bmale\b|daniel|alex|fred|david|mark|guy|ryan|eric|christopher|andrew|brian|davis|jorge|diego|alvaro|asaf|avri|pablo|raul|tom|arthur|oliver|thomas|george|james|william|liam|rishi|aaron|gordon|juan|carlos|enrique|miguel|tomas|antonio/i;
+  let voices = [];
+  if ('speechSynthesis' in window) { const load = () => voices = speechSynthesis.getVoices(); load(); speechSynthesis.onvoiceschanged = load; }
+  function pickVoice(lang, gender) {
+    const list = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith(lang)); if (!list.length) return null;
+    const score = (v) => (/natural|neural|premium|enhanced/i.test(v.name) ? 4 : 0) + (/google|microsoft|apple/i.test(v.name) ? 1 : 0) + (gender === 'f' ? (FEMALE.test(v.name) ? 3 : MALE.test(v.name) ? -3 : 0) : (MALE.test(v.name) ? 3 : FEMALE.test(v.name) ? -3 : 0));
+    return list.slice().sort((a, b) => score(b) - score(a))[0];
+  }
+  function say(text, { gender = 'm', age = 'adult', dist = 2 } = {}) {
+    if (!vol.speech || !('speechSynthesis' in window)) return;
+    const lang = SPEECH_LANG[LANG]; if (!lang) return;
+    const clean = String(text).replace(/<[^>]+>/g, '').replace(/\s*\([^)]*\)/g, '').replace(/[“”"״]/g, '').replace(/ה׳/g, 'השם').trim(); if (!clean) return;
+    const u = new SpeechSynthesisUtterance(clean); const v = pickVoice(lang, gender);
+    if (v) u.voice = v; u.lang = v ? v.lang : lang;
+    const vMatches = v && (gender === 'f' ? FEMALE.test(v.name) : MALE.test(v.name));
+    u.pitch = age === 'child' ? 1.45 : age === 'old' ? (gender === 'f' ? 0.95 : 0.78) : vMatches ? 1 : (gender === 'f' ? 1.2 : 0.82);
+    u.rate = age === 'old' ? 0.88 : age === 'child' ? 1.05 : 0.96;
+    u.volume = clamp(1.2 - dist * 0.08, 0.25, 1) * vol.master;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+    if (started) { duckT = 0.4; u.onend = () => { duckT = 1; }; }
   }
 
   return {
-    start, levites, trumpets, bell, coin, splash, step, shofarHorn, animal, flute, introMusic, stopMusic, chime,
+    prepare, start, levites, trumpets, bell, coin, splash, step, animal, flute, band, bandBeat, chatter, chime, say, musicOn,
+    introMusic() { musicOn(true); }, stopMusic() { /* music now continues in the background */ },
     get started() { return started; },
-    setVolume(v) { vol = v; if (master) master.gain.value = v; },
+    get debug() { return { pre: Object.keys(PRE).length, preKeys: Object.keys(PRE).join(','), state: ctx && ctx.state, time: ctx && +ctx.currentTime.toFixed(1), music: musicSeq.on && musicSeq.name, band: bandSeq.on && bandSeq.name, duck: +duck.toFixed(2), rec: Object.keys(REC) }; },
+    setVolume(v) { vol.master = v; if (master) master.gain.value = v; },
+    setMusicVolume(v) { vol.music = v; }, setMusicOn(on) { vol.musicOn = on; if (on) musicOn(true); }, setSpeech(on) { vol.speech = on; if (!on && 'speechSynthesis' in window) speechSynthesis.cancel(); },
+    get vol() { return vol; },
     setListener(cam) {
       if (!started) return; const l = ctx.listener; listenerPos.copy(cam.position);
       const f = new THREE.Vector3(0, 0, -1).applyQuaternion(cam.quaternion), u = new THREE.Vector3(0, 1, 0).applyQuaternion(cam.quaternion);
       if (l.positionX) { l.positionX.value = cam.position.x; l.positionY.value = cam.position.y; l.positionZ.value = cam.position.z; l.forwardX.value = f.x; l.forwardY.value = f.y; l.forwardZ.value = f.z; l.upX.value = u.x; l.upY.value = u.y; l.upZ.value = u.z; }
       else { l.setPosition(cam.position.x, cam.position.y, cam.position.z); l.setOrientation(f.x, f.y, f.z, u.x, u.y, u.z); }
-      // indoors in the Heichal → more reverb, muffled crowd
       const inside = cam.position.x < -52 && cam.position.x > -120 && Math.abs(cam.position.z) < 10;
-      wet.gain.setTargetAtTime(inside ? 0.7 : 0.32, ctx.currentTime, 0.4);
+      wetSend.gain.setTargetAtTime(inside ? 0.7 : 0.28, ctx.currentTime, 0.4);
+      ambLP.frequency.setTargetAtTime(inside ? 700 : 16000, ctx.currentTime, 0.3);
     },
+    setDuck(v) { duckT = v; },
   };
 })();
 
@@ -2195,6 +2702,7 @@ const S = {
   cap2: { en: 'Har HaZeisim, looking west across Nachal Kidron', he: 'מהר הזיתים, מבט מערבה מעל נחל קדרון', yi: 'פון הר הזיתים, קוקנדיג מערב-צו איבער נחל קדרון', es: 'Desde el Monte de los Olivos, mirando al oeste sobre el valle del Cedrón' },
   cap3: { en: 'Har HaBayis — five hundred by five hundred amos', he: 'הר הבית — חמש מאות על חמש מאות אמה', yi: 'הר הבית — פינף הונדערט אויף פינף הונדערט אמות', es: 'El Monte del Templo — quinientos por quinientos codos' },
   cap4: { en: 'The Heichal — one hundred amos high, “like a lion, wide in front”', he: 'ההיכל — מאה אמה גובהו, ״צר מאחוריו ורחב מלפניו כארי״', yi: 'דער היכל — הונדערט אמות הויך, ״שמאל פון הינטן און ברייט פון פארנט ווי א לייב״', es: 'El Heijal — cien codos de alto, “estrecho detrás y ancho delante, como un león”' },
+  cap6: { en: 'Simchas Beis HaSho’eivah — the Leviim play on the fifteen steps, the Chassidim dance', he: 'שמחת בית השואבה — הלויים מנגנים על חמש עשרה המעלות, והחסידים מרקדים', yi: 'שמחת בית השואבה — די לוים שפילן אויף די פופצן טרעפ, און די חסידים טאנצן', es: 'La alegría del pozo — los leviím tocan sobre los quince escalones, los jasidim bailan' },
   cap5: { en: 'The pilgrims gather below the Southern Steps…', he: 'עולי הרגל מתאספים למרגלות מעלות הדרום…', yi: 'די עולי רגל קומען זיך צוזאם אונטער די דרום-טרעפ…', es: 'Los peregrinos se reúnen al pie de las Escaleras del Sur…' },
   // ---- creator ----
   aliyah: { en: 'Aliyah l’regel', he: 'עלייה לרגל', yi: 'עלייה לרגל', es: 'Peregrinación' },
@@ -2298,7 +2806,7 @@ const S = {
   setLin: { en: 'Who are you?', he: 'מי אתה?', yi: 'ווער זענט איר?', es: '¿Quién eres?' },
   setStudy: { en: 'Study mode — walk anywhere to learn the structure (incl. Kodesh HaKodashim)', he: 'מצב לימוד — הליכה לכל מקום ללימוד המבנה (כולל קודש הקדשים)', yi: 'לערן-מצב — גיין אומעטום כדי צו לערנען דעם בנין (אויך קודש הקדשים)', es: 'Modo estudio — camina a cualquier parte para aprender la estructura (incl. el Santo de los Santos)' },
   setLabels: { en: 'Name tags over people', he: 'תגיות שם מעל אנשים', yi: 'נעמען איבער מענטשן', es: 'Etiquetas sobre las personas' },
-  setVol: { en: 'Volume', he: 'עוצמת קול', yi: 'ווייכקייט פונעם קול', es: 'Volumen' },
+  setVol: { en: 'Volume', he: 'עוצמת קול', yi: 'שטארקייט פונעם קול', es: 'Volumen' },
   setCam: { en: 'Camera distance', he: 'מרחק מצלמה', yi: 'ווייטקייט פון קאמערע', es: 'Distancia de cámara' },
   setQuality: { en: 'Graphics', he: 'גרפיקה', yi: 'גראפיק', es: 'Gráficos' },
   qAuto: { en: 'Automatic (recommended)', he: 'אוטומטי (מומלץ)', yi: 'אויטאמאטיש (רעקאמענדירט)', es: 'Automático (recomendado)' },
@@ -2319,6 +2827,28 @@ const S = {
   pCity: { en: 'Yerushalayim', he: 'ירושלים', yi: 'ירושלים', es: 'Jerusalén' }, pMount: { en: 'Har HaBayis', he: 'הר הבית', yi: 'הר הבית', es: 'Monte del Templo' }, pAzarah: { en: 'Azarah', he: 'עזרה', yi: 'עזרה', es: 'Atrio' }, pHeichal: { en: 'Heichal', he: 'היכל', yi: 'היכל', es: 'Heijal' },
   close: { en: 'Close ✕', he: 'סגור ✕', yi: 'פארמאכן ✕', es: 'Cerrar ✕' },
   modelsLoaded: { en: 'Loaded {0} real 3D characters from /models', he: 'נטענו {0} דמויות תלת־ממד מ־/models', yi: 'אריינגעלאדן {0} 3D פיגורן פון /models', es: 'Cargados {0} personajes 3D desde /models' },
+  // ---- music, dance, loading ----
+  lbl_band: { en: 'Leviim — kinnor, nevel, chalil', he: 'הלויים בכלי שיר', yi: 'די לוים מיט כלי שיר', es: 'Leviím con instrumentos' },
+  lbl_dance: { en: 'Simchas Beis HaSho’eivah', he: 'שמחת בית השואבה', yi: 'שמחת בית השואבה', es: 'Alegría del pozo' },
+  k_dancer: { en: 'one of the Chassidim and men of deeds', he: 'מן החסידים ואנשי המעשה', yi: 'איינער פון די חסידים ואנשי מעשה', es: 'uno de los jasidim y hombres de obras' },
+  act_dance: { en: 'Join the dance ♪', he: 'הצטרף לריקוד ♪', yi: 'כאפט זיך אריין אין טאנץ ♪', es: 'Únete al baile ♪' },
+  act_danceLeave: { en: 'Step out of the circle', he: 'צא מן המעגל', yi: 'גייט ארויס פונעם קרייז', es: 'Salir del círculo' },
+  danceMsg: { en: 'You are dancing with the Chassidim and men of deeds — the Leviim play on the fifteen steps. Walk to step out.', he: 'אתה רוקד עם החסידים ואנשי המעשה — הלויים מנגנים על חמש עשרה המעלות. זוז כדי לצאת.', yi: 'איר טאנצט מיט די חסידים ואנשי מעשה — די לוים שפילן אויף די פופצן טרעפ. גייט כדי ארויסצוגיין.', es: 'Bailas con los jasidim y hombres de obras — los leviím tocan sobre los quince escalones. Camina para salir.' },
+  danceLeave: { en: 'You step out of the circle.', he: 'יצאת מן המעגל.', yi: 'איר זענט ארויס פונעם קרייז.', es: 'Sales del círculo.' },
+  q_dance: { en: 'Dance at Simchas Beis HaSho’eivah', he: 'לרקוד בשמחת בית השואבה', yi: 'טאנצן ביי שמחת בית השואבה', es: 'Bailar en la alegría del pozo' },
+  setMusic: { en: 'Background music (violin & guitar)', he: 'מוזיקת רקע (כינור וגיטרה)', yi: 'מוזיק אין הינטערגרונט (פידל און גיטאר)', es: 'Música de fondo (violín y guitarra)' },
+  setSpeech: { en: 'People speak aloud', he: 'אנשים מדברים בקול', yi: 'מענטשן רעדן הויך', es: 'La gente habla en voz alta' },
+  musicHint: { en: 'Music and singing — Simchas Beis HaSho’eivah. Follow it!', he: 'נגינה ושירה — שמחת בית השואבה. לכו אחרי המנגינה!', yi: 'מוזיק און געזאנג — שמחת בית השואבה. גייט נאך דעם ניגון!', es: 'Música y canto — la alegría del pozo. ¡Síguela!' },
+  musicArrive: { en: '♪ The Leviim play on the fifteen steps, and the Chassidim and men of deeds dance with torches in their hands (Sukkah 5:4). Come to the circle and join the dance!', he: '♪ הלויים מנגנים על חמש עשרה המעלות, והחסידים ואנשי המעשה מרקדים באבוקות של אור בידיהם (סוכה ה, ד). בוא אל המעגל והצטרף לריקוד!', yi: '♪ די לוים שפילן אויף די פופצן טרעפ, און די חסידים ואנשי מעשה טאנצן מיט ברענענדיגע פאקלען אין די הענט (סוכה ה׳ ד׳). קומט צום קרייז און כאפט זיך אריין אין טאנץ!', es: '♪ Los leviím tocan sobre los quince escalones y los jasidim y hombres de obras bailan con antorchas en las manos (Sucá 5:4). ¡Acércate al círculo y únete al baile!' },
+  preparing: { en: 'Preparing Yerushalayim… {0}%', he: 'מכינים את ירושלים… {0}%', yi: 'מען גרייט צו ירושלים… {0}%', es: 'Preparando Jerusalén… {0}%' },
+  ld1: { en: 'Raising Har HaBayis…', he: 'מקימים את הר הבית…', yi: 'מען בויט דעם הר הבית…', es: 'Levantando el Monte del Templo…' },
+  ld2: { en: 'Building the porticoes…', he: 'בונים את הסטווים…', yi: 'מען בויט די סטווים…', es: 'Construyendo los pórticos…' },
+  ld3: { en: 'Ezras Nashim and the fifteen steps…', he: 'עזרת נשים וחמש עשרה המעלות…', yi: 'עזרת נשים און די פופצן טרעפ…', es: 'El atrio de las mujeres y los quince escalones…' },
+  ld4: { en: 'The Azarah and the Mizbeach…', he: 'העזרה והמזבח…', yi: 'די עזרה און דער מזבח…', es: 'El atrio y el altar…' },
+  ld5: { en: 'The Heichal…', he: 'ההיכל…', yi: 'דער היכל…', es: 'El Heijal…' },
+  ld6: { en: 'Polishing the stones…', he: 'מלטשים את האבנים…', yi: 'מען פאלירט די שטיינער…', es: 'Puliendo las piedras…' },
+  ld7: { en: 'The people of Yerushalayim are gathering…', he: 'אנשי ירושלים מתאספים…', yi: 'די אידן פון ירושלים קומען זיך צוזאם…', es: 'La gente de Jerusalén se reúne…' },
+  greet: { en: 'Shalom aleichem!|Chag sameach!|Gut Yom Tov!|Welcome to Yerushalayim!|Shalom, shalom!', he: 'שלום עליכם!|חג שמח!|ברוכים הבאים לירושלים!|שלום, שלום!', yi: 'שלום עליכם!|א גוטן יום טוב!|ברוך הבא קיין ירושלים!|שלום, שלום!', es: '¡Shalom aleijem!|¡Jag saméaj!|¡Bienvenido a Jerusalén!|¡Shalom, shalom!' },
   // who you talk to
   k_israelite: { en: 'a Yid from the Galil', he: 'יהודי מן הגליל', yi: 'א איד פון גליל', es: 'un judío de Galilea' },
   k_woman: { en: 'a woman of Yerushalayim', he: 'אישה מירושלים', yi: 'א פרוי פון ירושלים', es: 'una mujer de Jerusalén' },
@@ -2381,7 +2911,14 @@ const LINES = {
   levi: [
     { en: 'We sing the Shir shel Yom on the Duchan, with kinnor, nevel and tziltzal.', he: 'אנו אומרים את שיר של יום על הדוכן, בכינור, בנבל ובצלצל.', yi: 'מיר זינגען דעם שיר של יום אויפן דוכן, מיט כינור, נבל און צלצל.', es: 'Cantamos el salmo del día en el Dujan, con lira, arpa y címbalo.' },
     { en: 'Never fewer than twelve Leviim stand on the Duchan (Arachin 2:6).', he: 'אין פוחתים משנים עשר לויים עומדים על הדוכן (ערכין ב, ו).', yi: 'קיינמאל ווייניגער ווי צוועלף לוים שטייען אויפן דוכן (ערכין ב׳ ו׳).', es: 'Nunca menos de doce leviím en el Dujan (Arajín 2:6).' },
+    { en: 'Kinnoros, nevalim, metziltayim and chatzotzros without number — on the fifteen steps, like the fifteen Shir HaMa’alos (Sukkah 5:4).', he: 'בכינורות ובנבלים ובמצלתים ובחצוצרות ובכלי שיר בלא מספר — על חמש עשרה מעלות, כנגד חמש עשרה שיר המעלות (סוכה ה, ד).', yi: 'מיט כנורות, נבלים, מצלתים און חצוצרות אן א שיעור — אויף די פופצן טרעפ, אקעגן די פופצן שיר המעלות (סוכה ה׳ ד׳).', es: 'Liras, arpas, címbalos y trompetas sin número — sobre los quince escalones, como los quince Cantos de las Subidas (Sucá 5:4).' },
     { en: 'On Sukkos, at Simchas Beis HaSho’eivah, we stand on the fifteen steps and play.', he: 'בסוכות, בשמחת בית השואבה, אנו עומדים על חמש עשרה המעלות ומנגנים.', yi: 'סוכות, ביי שמחת בית השואבה, שטייען מיר אויף די פופצן טרעפ און שפילן.', es: 'En Sucot, en la alegría del pozo, tocamos sobre los quince escalones.' },
+  ],
+  dancer: [
+    { q: 'מִי שֶׁלֹּא רָאָה שִׂמְחַת בֵּית הַשּׁוֹאֵבָה לֹא רָאָה שִׂמְחָה מִיָּמָיו', en: '“Whoever has not seen Simchas Beis HaSho’eivah has never seen joy in his life” (Sukkah 5:1). Come — join the circle!', he: '״מי שלא ראה שמחת בית השואבה לא ראה שמחה מימיו״ (סוכה ה, א). בוא — הצטרף למעגל!', yi: '״מי שלא ראה שמחת בית השואבה לא ראה שמחה מימיו״ (סוכה ה׳ א׳). קומט — כאפט זיך אריין אינעם קרייז!', es: '«Quien no ha visto la alegría del pozo nunca ha visto alegría en su vida» (Sucá 5:1). ¡Ven, únete al círculo!' },
+    { en: 'Rabban Shimon ben Gamliel would juggle eight burning torches, and not one touched the ground (Sukkah 53a).', he: 'רבן שמעון בן גמליאל היה נוטל שמונה אבוקות של אור, זורק אחת ונוטל אחת, ואין נוגעות זו בזו (סוכה נג ע״א).', yi: 'רבן שמעון בן גמליאל פלעגט ווארפן אכט ברענענדיגע פאקלען, און קיין איינע איז נישט געפאלן (סוכה נ״ג ע״א).', es: 'Rabán Shimón ben Gamliel hacía malabares con ocho antorchas encendidas, y ninguna tocaba el suelo (Sucá 53a).' },
+    { q: 'אַשְׁרֵי יַלְדוּתֵנוּ שֶׁלֹּא בִּיְּשָׁה אֶת זִקְנוּתֵנוּ', en: 'We old men sing “Fortunate is our youth that did not shame our old age”, and the baalei teshuvah answer “Fortunate is our old age that atoned for our youth” (Sukkah 53a).', he: 'אנו הזקנים אומרים ״אשרי ילדותנו שלא ביישה את זקנותנו״, ובעלי התשובה עונים ״אשרי זקנותנו שכיפרה על ילדותנו״ (סוכה נג ע״א).', yi: 'מיר, די זקנים, זינגען ״אשרי ילדותנו שלא ביישה את זקנותנו״, און די בעלי תשובה ענטפערן ״אשרי זקנותנו שכיפרה על ילדותנו״ (סוכה נ״ג ע״א).', es: 'Los ancianos cantamos «Dichosa nuestra juventud que no avergonzó nuestra vejez», y los arrepentidos responden «Dichosa nuestra vejez que expió nuestra juventud» (Sucá 53a).' },
+    { en: 'From the light of the golden menoros there was not a courtyard in Yerushalayim that was not lit up (Sukkah 5:3).', he: 'לא הייתה חצר בירושלים שאינה מאירה מאור בית השואבה (סוכה ה, ג).', yi: 'עס איז נישט געווען קיין הויף אין ירושלים וואס איז נישט באלויכטן געווארן פונעם ליכט פון בית השואבה (סוכה ה׳ ג׳).', es: 'No había patio en Jerusalén que no se iluminara con la luz del pozo (Sucá 5:3).' },
   ],
   kohenGadol: [
     { en: 'Eight garments, and each one atones: the me’il for lashon hara, the choshen for judgement, the tzitz for brazenness (Zevachim 88b).', he: 'שמונה בגדים וכל אחד מכפר: המעיל על לשון הרע, החושן על הדינין, הציץ על עזות פנים (זבחים פח ע״ב).', yi: 'אכט בגדים, און יעדער איינער איז מכפר: דער מעיל אויף לשון הרע, דער חושן אויף דינים, דער ציץ אויף עזות פנים (זבחים פ״ח ע״ב).', es: 'Ocho vestiduras, y cada una expía: el manto por la maledicencia, el pectoral por los juicios, la placa por la insolencia (Zevajim 88b).' },
@@ -2584,6 +3121,11 @@ function resolve(x, z, y, r = 0.5) {
     if (d > 1e-4) { if (d < r) { x = cx + dx / d * r; z = cz + dz / d * r; } }
     else { const o = [[c.x0 - r - x, 0], [c.x1 + r - x, 0], [0, c.z0 - r - z], [0, c.z1 + r - z]].sort((a, b) => Math.abs(a[0] + a[1]) - Math.abs(b[0] + b[1])); x += o[0][0]; z += o[0][1]; }
   }
+  if (state === 'play') for (const n of npcs) {      // people are solid too (you walk around them, not through them)
+    if (n.dance || !n.p.root.visible) continue; const dx = x - n.x, dz = z - n.z; if (Math.abs(dx) > 1.3 || Math.abs(dz) > 1.3 || Math.abs(n.y - y) > 2) continue;
+    const rr2 = n.p.isAnimal ? (n.p.kind === 'ox' ? 1.3 : n.p.kind === 'calf' ? 1.0 : 0.75) : 0.85, d = Math.hypot(dx, dz);
+    if (d < rr2 && d > 1e-4) { x = n.x + dx / d * rr2; z = n.z + dz / d * rr2; }
+  }
   return [x, z];
 }
 function tryMove(nx, nz) {
@@ -2664,6 +3206,17 @@ function updatePlayer(dt) {
   if (state !== 'play') { m.root.position.set(player.x, player.y, player.z); m.root.rotation.y = player.yaw; animatePerson(m, dt, 0, {}); return; }
   const f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) + moveIn.jf + moveIn.gf;
   const r = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0) + moveIn.jr + moveIn.gr;
+  if (player.dancing) {   // in the circle: your feet follow the music
+    if (Math.hypot(f, r) > 0.3) { leaveDance(); }
+    else {
+      const a = danceA + player.dancing.a0, nx = DANCE.x + Math.sin(a) * DANCE.r, nz = DANCE.z + Math.cos(a) * DANCE.r;
+      player.x = nx; player.z = nz; player.y = groundHeight(nx, nz, player.y); player.yaw = Math.atan2(DANCE.x - nx, DANCE.z - nz) + 0.22;
+      m.root.position.set(player.x, player.y, player.z); m.root.rotation.y = player.yaw; m.root.visible = !player.firstPerson;
+      animatePerson(m, dt, 1, { dance: 1, beat: AUDIO.bandBeat() ?? performance.now() / 500 });
+      setShadow(npcs.length, player.x, player.y, player.z, 1.25, 1, player.yaw, !player.firstPerson);
+      return;
+    }
+  }
   if (keys.KeyQ) player.camYaw += dt * 1.8; if (keys.KeyZ) player.camYaw -= dt * 1.8;
   const mag = Math.min(1, Math.hypot(f, r)), run = keys.ShiftLeft || keys.ShiftRight || touchRun || moveIn.grun;
   let dirX = 0, dirZ = 0;
@@ -2687,7 +3240,9 @@ function updatePlayer(dt) {
   if (player.y > g + 0.01) { player.vy -= 30 * dt; player.y = Math.max(g, player.y + player.vy * dt); } else { player.vy = 0; player.y = lerp(player.y, g, Math.min(1, dt * 18)); }
   m.root.position.set(player.x, player.y, player.z); m.root.rotation.y = player.yaw;
   m.root.visible = !player.firstPerson;
+  m.lookY = player.speed < 0.3 && !player.firstPerson ? clamp(angDiff(player.camYaw, player.yaw), -0.9, 0.9) * 0.7 : 0; m.lookP = 0;
   animatePerson(m, dt, player.speed, { shuckle: bowing });
+  setShadow(npcs.length, player.x, player.y, player.z, 1.25, 1, player.yaw, !player.firstPerson);
   if (rippleMesh && rippleMesh.userData.t > 0) { rippleMesh.userData.t -= dt * 1.5; rippleMesh.material.opacity = Math.max(0, rippleMesh.userData.t); rippleMesh.scale.setScalar(1 + (1 - rippleMesh.userData.t) * 1.5); }
 }
 
@@ -2721,17 +3276,18 @@ function updateCamera(dt) {
   for (let d = 0.6; d <= dist; d += 0.4) { _cp.copy(camTarget).addScaledVector(dir, d); if (pointBlocked(_cp)) { dist = Math.max(0.8, d - 0.5); break; } }
   camDistSm = Math.min(lerp(camDistSm, dist, Math.min(1, dt * 6)), dist);
   _cp.copy(camTarget).addScaledVector(dir, camDistSm);
-  _cp.y = Math.max(_cp.y, groundHeight(_cp.x, _cp.z, _cp.y) + 0.6);
+  _cp.y = Math.max(_cp.y, groundHeight(_cp.x, _cp.z, player.y) + 0.6);    // the ground on the player's own level (not the Mount floor above the tunnel)
+  if (inRect(player.x, player.z, CITY.tunnel) && player.y < -1) _cp.y = Math.min(_cp.y, -1.4);
   camera.position.copy(_cp); camera.lookAt(camTarget);
 }
 function toggleView() { player.firstPerson = !player.firstPerson; toast(player.firstPerson ? T('viewFP') : T('viewTP'), 1500); }
 
 /* ---------- cinematic flight over Yerushalayim ---------- */
 const CINE = {
-  dur: 34,
-  pos: [[1300, 260, -260], [760, 150, 60], [380, 80, 170], [150, 52, 46], [30, 46, 130], [-40, 14, 260], [-80, 2, 360]],
-  look: [[0, 60, 0], [0, 60, 0], [-30, 55, 0], [-45, 70, 0], [-60, 45, 0], [-80, -6, 250], [-80, -14, 270]],
-  caps: [[0.5, 'cap1'], [6.5, 'cap2'], [13, 'cap3'], [19, 'cap4'], [26.5, 'cap5']],
+  dur: 40,
+  pos: [[1300, 260, -260], [760, 150, 60], [380, 80, 120], [204, 40, 2], [128, 24, -2], [90, 62, 100], [-40, 14, 260], [-80, 2, 360]],
+  look: [[0, 60, 0], [0, 60, 0], [-30, 55, 0], [96, 8, 0], [52, 10, 0], [-60, 45, 0], [-80, -6, 250], [-80, -14, 270]],
+  caps: [[0.5, 'cap1'], [5.5, 'cap2'], [11, 'cap3'], [16.5, 'cap6'], [25, 'cap4'], [33, 'cap5']],
 };
 let cineT = 0, cinePosC, cineLookC, capIdx = -1;
 function startCinematic() {
@@ -2739,8 +3295,7 @@ function startCinematic() {
   cinePosC = new THREE.CatmullRomCurve3(CINE.pos.map(p => new THREE.Vector3(...p)), false, 'centripetal');
   cineLookC = new THREE.CatmullRomCurve3(CINE.look.map(p => new THREE.Vector3(...p)), false, 'centripetal');
   timeOfDay = 8.0; updateSun();
-  $('splash').classList.add('hidden'); $('cine').classList.remove('hidden'); $('caption').style.opacity = 0;
-  AUDIO.introMusic(CINE.dur + 4);
+  $('splash').classList.add('hidden'); $('hud').classList.add('hidden'); $('cine').classList.remove('hidden'); $('caption').style.opacity = 0;
 }
 function updateCinematic(dt) {
   cineT += dt; const u = clamp(cineT / CINE.dur, 0, 1), e = u * u * (3 - 2 * u) * 0.35 + u * 0.65;
@@ -2751,7 +3306,7 @@ function updateCinematic(dt) {
 }
 function endCinematic() {
   if (state !== 'cine') return;
-  fadeThrough(() => { $('cine').classList.add('hidden'); AUDIO.stopMusic(4); timeOfDay = 8.2; updateSun(); openCreator(); });
+  fadeThrough(() => { $('cine').classList.add('hidden'); timeOfDay = 8.2; updateSun(); openCreator(); });
 }
 function fadeThrough(fn) { const f = $('fade'); f.style.opacity = 1; setTimeout(() => { fn(); f.style.opacity = 0; }, 480); }
 
@@ -2809,7 +3364,7 @@ let playedOnce = false;
 
 /* ---------- splash ---------- */
 document.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => setLang(b.dataset.lang));
-$('begin').onclick = () => { AUDIO.start(); startCinematic(); };
+$('begin').onclick = () => { if ($('begin').disabled) return; AUDIO.start(); AUDIO.musicOn(); startCinematic(); };
 $('skip').onclick = () => endCinematic();
 
 /* ---------- interaction ---------- */
@@ -2817,14 +3372,26 @@ let currentAct = null, dialogTimer = 0;
 function findAction() {
   const P = new THREE.Vector3(player.x, player.y + 2, player.z); let best = null, bd = 1e9;
   for (const it of interactables) { const d = it.pos.distanceTo(P); if (d < it.r && d < bd) { bd = d; best = { kind: it.kind, it }; } }
-  for (const n of npcs) { if (!n.lines) continue; const d = Math.hypot(n.x - player.x, n.z - player.z); if (d < 4.2 && Math.abs(n.y - player.y) < 2.5 && (!best || d < bd)) { bd = d; best = { kind: 'talk', n }; } }
+  if (player.dancing) return best;
+  for (const n of npcs) { if (!n.lines) continue; const d = Math.hypot(n.x - player.x, n.z - player.z); if (d < (n.dance || n.clapper ? 2.2 : 4.2) && Math.abs(n.y - player.y) < 2.5 && (!best || d < bd)) { bd = d; best = { kind: 'talk', n }; } }
   return best;
 }
-const whoName = (n) => n.labelKey ? T(n.labelKey) : T('k_' + n.lines);
+const whoName = (n) => n.labelKey && n.labelKey !== 'lbl_dance' && n.labelKey !== 'lbl_band' ? T(n.labelKey) : T('k_' + n.lines);
+function joinDance() {
+  if (player.dancing) return leaveDance();
+  // take the place in the circle nearest to you
+  const a = Math.atan2(player.x - DANCE.x, player.z - DANCE.z) - danceA, TAU = Math.PI * 2, norm = v => ((v % TAU) + TAU) % TAU;
+  const angs = dancers.map(n => norm(n.dance.a0)).sort((p, q) => p - q), pa = norm(a);
+  let lo = angs[angs.length - 1] - TAU, hi = angs[0]; for (let i = 0; i < angs.length; i++) { if (angs[i] <= pa) lo = angs[i]; if (angs[i] > pa) { hi = angs[i]; break; } if (i === angs.length - 1) hi = angs[0] + TAU; }
+  player.dancing = { a0: (lo + hi) / 2 }; player.target = null; player.camDist = Math.max(player.camDist, 11); player.camPitch = Math.max(player.camPitch, 0.35);
+  toast(T('danceMsg'), 6500); questDone('q_dance');
+}
+function leaveDance() { if (!player.dancing) return; player.dancing = null; toast(T('danceLeave'), 2500); }
 function actLabel(a) {
   if (a.kind === 'talk') return T('act_talk', whoName(a.n));
   if (a.kind === 'coin') return T('act_coin', `<span class="he">${a.it.he}</span>`);
   if (a.kind === 'place') { const p = PLACES.find(q => q.id === a.it.place); return T('act_place', p ? L(p.name) : ''); }
+  if (a.kind === 'dance') return T(player.dancing ? 'act_danceLeave' : 'act_dance');
   return T('act_' + a.kind);
 }
 function interact() {
@@ -2833,13 +3400,16 @@ function interact() {
     const n = a.n; n.talking = 7; const Ls = LINES[n.lines] || LINES.israelite; n.lineIdx = ((n.lineIdx ?? Math.floor(Math.random() * Ls.length)) + 1) % Ls.length;
     const line = Ls[n.lineIdx];
     $('dWho').textContent = whoName(n); $('dQ').textContent = line.q || ''; $('dQ').style.display = line.q ? '' : 'none'; $('dTxt').textContent = L(line);
-    $('dialog').classList.remove('hidden'); dialogTimer = 8;
+    $('dialog').classList.remove('hidden'); dialogTimer = 9;
+    const sp = n.p.spec || {}, t = sp.type;
+    AUDIO.say(L(line), { gender: t === 'woman' || sp.girl ? 'f' : 'm', age: t === 'child' ? 'child' : (sp.age || 0) > 0.7 || t === 'kohenGadol' ? 'old' : 'adult', dist: Math.hypot(n.x - player.x, n.z - player.z) });
     if (n.lines === 'kohen' || n.lines === 'kohenGadol' || n.lines === 'trumpeter') questDone('q_talk');
     if (n.lines === 'bikkurim') questDone('q_bikkurim');
   } else if (a.kind === 'coin') { AUDIO.coin(); toast(T('coinMsg', a.it.he, a.it.en), 4200); questDone('q_tzedakah'); }
   else if (a.kind === 'wash') {
     if (charSpec.lineage === 'kohen' || studyMode) { AUDIO.splash(); toast(T('washMsg'), 5200); } else toast(T('washNo'), 3500);
   } else if (a.kind === 'sing') { singLevites(1); }
+  else if (a.kind === 'dance') joinDance();
   else if (a.kind === 'mikveh') { AUDIO.splash(); toast(T('mikvehMsg'), 5000); questDone('q_mikveh'); }
   else if (a.kind === 'place') showPlace(PLACES.find(p => p.id === a.it.place));
 }
@@ -2851,7 +3421,7 @@ function singLevites(loud = 1) {
   levitesSinging = true; songUntil = performance.now() + len * 1000; setTimeout(() => levitesSinging = false, len * 1000);
   if (Math.hypot(player.x - 28, player.z) < 120) questDone('q_levites');
 }
-addEventListener('levites', () => { if (state === 'play') singLevites(0.8); });
+addEventListener('levites', () => { if (state === 'play' && Math.hypot(player.x - BAND.x, player.z - BAND.z) > 110) singLevites(0.8); });
 let avodahOn = false;
 function startAvodah() {
   if (avodahOn || state !== 'play') return; avodahOn = true;
@@ -2868,7 +3438,7 @@ function startAvodah() {
 }
 
 /* ---------- the journey ---------- */
-const QUESTS = ['q_mikveh', 'q_steps', 'q_mount', 'q_tzedakah', 'q_steps15', 'q_yisrael', 'q_levites', 'q_avodah', 'q_talk', 'q_bikkurim'];
+const QUESTS = ['q_mikveh', 'q_steps', 'q_mount', 'q_tzedakah', 'q_dance', 'q_steps15', 'q_yisrael', 'q_levites', 'q_avodah', 'q_talk', 'q_bikkurim'];
 const qDone = new Set((() => { try { return JSON.parse(localStorage.getItem('bhm-quests') || '[]'); } catch (e) { return []; } })());
 function questDone(id) {
   if (qDone.has(id)) return; qDone.add(id); try { localStorage.setItem('bhm-quests', JSON.stringify([...qDone])); } catch (e) { }
@@ -2936,7 +3506,9 @@ function showSettings() {
   <label><input type="checkbox" id="studyChk" ${studyMode ? 'checked' : ''}> ${T('setStudy')}</label>
   <label><input type="checkbox" id="lblChk" ${showLabels ? 'checked' : ''}> ${T('setLabels')}</label>
   <label>${T('setQuality')}</label><select id="gfxSel"><option value="auto">${T('qAuto')}</option><option value="low">${T('qLow')}</option><option value="high">${T('qHigh')}</option></select>
-  <label>${T('setVol')}</label><input type="range" id="vol" min="0" max="1" step="0.05" value="0.8">
+  <label>${T('setVol')}</label><input type="range" id="vol" min="0" max="1" step="0.05" value="${AUDIO.vol.master}">
+  <label><input type="checkbox" id="musChk" ${AUDIO.vol.musicOn ? 'checked' : ''}> ${T('setMusic')}</label><input type="range" id="musVol" min="0" max="1" step="0.05" value="${AUDIO.vol.music}">
+  <label><input type="checkbox" id="spkChk" ${AUDIO.vol.speech ? 'checked' : ''}> ${T('setSpeech')}</label>
   <label>${T('setCam')}</label><input type="range" id="camd" min="2.5" max="40" step="0.5" value="${player.camDist}">
   <p><button class="btn" id="reCreate">${T('setChange')}</button> <button class="btn" id="fsBtn">${T('setFull')}</button></p></div>`);
   $('langSel').value = LANG; $('linSel').value = charSpec.lineage; $('gfxSel').value = QUALITY.pref;
@@ -2947,6 +3519,7 @@ function showSettings() {
   $('lblChk').onchange = e => showLabels = e.target.checked;
   $('gfxSel').onchange = e => { try { localStorage.setItem('bhm-gfx', e.target.value); } catch (er) { } location.reload(); };
   $('vol').oninput = e => AUDIO.setVolume(+e.target.value);
+  $('musVol').oninput = e => AUDIO.setMusicVolume(+e.target.value); $('musChk').onchange = e => AUDIO.setMusicOn(e.target.checked); $('spkChk').onchange = e => AUDIO.setSpeech(e.target.checked);
   $('camd').oninput = e => player.camDist = +e.target.value;
   $('reCreate').onclick = () => openCreatorFromPlay();
   $('fsBtn').onclick = () => { const d = document.documentElement; (d.requestFullscreen || d.webkitRequestFullscreen)?.call(d); };
@@ -2956,7 +3529,9 @@ function openCreatorFromPlay() { savedPos = { x: player.x, z: player.z, yaw: pla
 function ensureAllowed() { if (accessBlock(player.x, player.z)) teleport(35, 0); }
 $('bMeasure').onclick = showMeasurements; $('bGo').onclick = showGoTo; $('bSet').onclick = showSettings; $('bHelp').onclick = showHelp; $('bTamid').onclick = startAvodah; $('bPlan').onclick = togglePlan;
 $('loc').onclick = () => showPlace(currentPlace);
-addEventListener('langchange', () => { if (state === 'creator') renderCreator(); renderQuests(); currentPlace = undefined; if (!$('plan').classList.contains('hidden')) renderPlan(); });
+function compactTopbar() { document.querySelectorAll('#topbar .btn').forEach(b => { const t = b.textContent.trim(), m = t.match(/^(\S+)\s+(.+)$/); if (m && !b.querySelector(".lbl")) { b.innerHTML = `${m[1]}<span class="lbl"> ${m[2]}</span>`; b.title = m[2]; } }); }
+compactTopbar();
+addEventListener('langchange', () => { compactTopbar(); if (!$('begin').disabled) $('beginTxt').textContent = T('begin'); if (state === 'creator') renderCreator(); renderQuests(); currentPlace = undefined; if (!$('plan').classList.contains('hidden')) renderPlan(); });
 
 /* ---------- Blueprint ---------- */
 let planMode = 'mount';
@@ -2973,7 +3548,7 @@ function drawPlan(g, w, h, view, opts = {}) {
   g.setLineDash([4, 3]); g.strokeStyle = '#7a5a2a'; g.lineWidth = 1.5; g.strokeRect(X(-165), Z(-86), 365 * sc, 172 * sc); g.setLineDash([]);
   R([44, 182, -70.5, 70.5], '#d9c79c', '#5b3b10', 2); R([44, 179, -67.5, 67.5], '#f2e7cc', null);
   for (const r of [[139, 179, 27.5, 67.5], [139, 179, -67.5, -27.5], [44, 84, -67.5, -27.5], [44, 84, 27.5, 67.5]]) R(r, '#e4d3a8');
-  g.fillStyle = '#e8dab6'; g.beginPath(); g.arc(X(44), Z(0), 15 * sc, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
+  g.fillStyle = '#e8dab6'; g.beginPath(); g.arc(X(NIK.x), Z(NIK.z), NIK.r * sc, -Math.PI / 2, Math.PI / 2); g.fill(); g.stroke();
   R([-150, 44, -70.5, 70.5], '#d9c79c', '#5b3b10', 2); R([-147, 40, -67.5, 67.5], '#f6eedb', null);
   R([29, 40, -67.5, 67.5], '#f0e2bf'); R([27, 29, -67.5, 67.5], '#e2cd9a'); R([18, 27, -67.5, 67.5], '#f6eedb');
   R(LAY.altar, '#ffffff', '#5b3b10', 2); R(LAY.altarTop, '#f3efe6'); R(LAY.ramp, '#fbf8f2', '#5b3b10');
@@ -2997,6 +3572,8 @@ function drawPlan(g, w, h, view, opts = {}) {
     if (view === PLAN_VIEWS.azarah) { dim(-147, -78, 40, -78, '187'); lbl('135', -156, 0, 11, '#8a2a1a'); dim(44, 78, 179, 78, '135'); dim(29, -72, 40, -72, '11'); dim(18, -72, 29, -72, '11'); dim(-14, 16, 18, 16, '32'); dim(-36, -72, -14, -72, '22'); dim(-136, -72, -36, -72, '100'); dim(-147, -72, -136, -72, '11'); }
     if (view === PLAN_VIEWS.heichal) { dim(-136, -40, -36, -40, '100'); dim(-41, 52, -52, 52, '11'); dim(-98, 13, -58, 13, '40'); dim(-119, 13, -99, 13, '20'); dim(-140, -10, -140, 10, '20'); dim(-30, -50, -30, 50, '100'); dim(-60, -35, -60, 35, '70'); }
   }
+  g.strokeStyle = 'rgba(176,120,30,.7)'; g.lineWidth = 1.5; g.beginPath(); g.arc(X(DANCE.x), Z(DANCE.z), DANCE.r * sc, 0, 7); g.stroke();
+  g.fillStyle = '#9a5a10'; g.font = `700 ${Math.max(14, Math.min(26, 5 * sc))}px serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('♪', X(BAND.x + 3), Z(BAND.z)); g.fillText('♫', X(DANCE.x), Z(DANCE.z));
   g.save(); g.translate(X(player.x), Z(player.z)); g.rotate(-player.yaw + Math.PI); g.fillStyle = '#c0261f'; g.beginPath(); g.moveTo(0, -9); g.lineTo(6, 7); g.lineTo(0, 3); g.lineTo(-6, 7); g.closePath(); g.fill(); g.restore();
   if (opts.npcs) for (const n of npcs) { const kg = n.lines === 'kohenGadol'; g.fillStyle = kg ? '#1f4ab0' : n.animal ? 'rgba(120,90,40,.6)' : 'rgba(60,40,20,.5)'; g.fillRect(X(n.x) - 1, Z(n.z) - 1, kg ? 4 : 2, kg ? 4 : 2); }
   return { X, Z, sc, ox, oz };
@@ -3025,18 +3602,45 @@ function updateHUD(dt) {
   const pr = $('prompt');
   if (currentAct) { pr.innerHTML = `${isTouch ? T('tapAct') : '<b>E</b>'} — ${actLabel(currentAct)}`; pr.classList.remove('hidden'); } else pr.classList.add('hidden');
   if (dialogTimer > 0) { dialogTimer -= 0.25; if (dialogTimer <= 0) $('dialog').classList.add('hidden'); }
-  checkQuests(); drawMinimap();
+  checkQuests(); drawMinimap(); updateMusicHint(); greetings();
 }
+/* now and then someone you pass greets you */
+let greetT = 12;
+function greetings() {
+  greetT -= 0.25; if (greetT > 0 || player.dancing) return;
+  let best = null, bd = 4.8;
+  for (const n of npcs) { if (!n.lines || n.dance || n.band || n.duchan || n.p.isAnimal || !n.p.root.visible) continue; const d = Math.hypot(n.x - player.x, n.z - player.z); if (d < bd && Math.abs(n.y - player.y) < 2) { bd = d; best = n; } }
+  if (!best) return;
+  greetT = 28 + Math.random() * 25; best.talking = 3;
+  const g = pick(T('greet').split('|')), sp = best.p.spec || {};
+  toast(`<b>${whoName(best)}:</b> ${g}`, 2600);
+  AUDIO.say(g, { gender: sp.type === 'woman' || sp.girl ? 'f' : 'm', age: sp.type === 'child' ? 'child' : (sp.age || 0) > 0.7 ? 'old' : 'adult', dist: bd });
+}
+let musicArrived = false;
+function updateMusicHint() {
+  const el = $('music'), dx = DANCE.x - player.x, dz = DANCE.z - player.z, d = Math.hypot(dx, dz);
+  const show = state === 'play' && bandOn && d > 24 && d < 135 && !player.dancing && player.y > -6 && !(player.x < -36 && player.x > -136 && Math.abs(player.z) < 45);
+  el.classList.toggle('hidden', !show);
+  if (show) { $('musicTxt').textContent = T('musicHint'); const rel = Math.atan2(dx, dz) - player.camYaw; $('musicArrow').style.transform = `rotate(${-rel * 180 / Math.PI - 90}deg)`; }
+  if (d < 22 && !musicArrived && state === 'play') { musicArrived = true; toast(T('musicArrive'), 9000); }
+  if (d > 60) musicArrived = false;
+}
+$('music').onclick = () => teleport(DANCE.x + 14, DANCE.z + 6);
 
 /* ---------- main loop: frame cap + adaptive resolution ---------- */
 const clock = new THREE.Clock();
 let lpT = 0, perfT = 0, perfFrames = 0, lastFrame = 0;
+let frameErrors = 0;
 function frame(now) {
   if (now - lastFrame < 1000 / 62) return;               // never render faster than ~60 fps (saves power on 120/144 Hz screens)
   lastFrame = now;
+  try { frameBody(now); } catch (err) { if (frameErrors++ < 5) console.error('frame', err); }   // one bad frame must never stop the world
+}
+function frameBody(now) {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   updatePlayer(dt);
-  updateNPCs(dt, state === 'play' ? player : camera.position);
+  updateNPCs(dt, state === 'play' || state === 'creator' ? player : camera.position, state === 'play');
+  updateCrowd(dt, state === 'play' || state === 'creator' ? player : camera.position);
   if (state === 'creator') for (const n of npcs) if (Math.abs(n.z - player.z) < 9 && n.x > player.x - 6 && n.x < player.x + 14) n.p.root.visible = false;
   for (const f of animated) f(dt, t);
   updateCamera(dt);
@@ -3062,18 +3666,25 @@ addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; cam
 /* ---------- boot ---------- */
 (async function boot() {
   try {
-    setLang(LANG); loadStep(4, T('loading'));
-    await document.fonts.ready.catch(() => { });
+    setLang(LANG); state = 'splash'; loadStep(3, 'loading');
+    // fonts for the Hebrew signs: wait a moment for them, but never block on a slow network
+    await Promise.race([Promise.all(['700 40px "Frank Ruhl Libre"', '900 64px "Frank Ruhl Libre"'].map(f => document.fonts.load(f))).catch(() => { }), new Promise(r => setTimeout(r, 1200))]);
     await buildWorld();
-    loadStep(86, '…'); await nextFrame();
+    loadStep(84, 'ld7'); await nextFrame();
     populate();
     rebuildPlayer();
     player.y = groundHeight(player.x, player.z);
-    loadStep(100, T('ready'));
+    loadStep(94, 'ld6'); await nextFrame();
+    timeOfDay = 8.4; updateSun();
+    try { if (renderer.compileAsync) await Promise.race([renderer.compileAsync(scene, camera), new Promise(r => setTimeout(r, 4000))]); } catch (e) { }
+    loadStep(100, 'ready');
     renderer.setAnimationLoop(frame);
+    AUDIO.prepare();                       // the sounds are rendered in the background
     loadGLTFCharacters();
-    window.__temple = { setLang, camTarget, player, npcs, colliders, groundHeight, teleport, camera, renderer, scene, charSpec, setTime: (h) => { timeOfDay = h; updateSun(); }, setStudy: v => studyMode = v, startAvodah, PLACES, setState: s => state = s, openCreator, endCinematic, startCinematic, get state() { return state; } };
-    setTimeout(() => { $('loader').style.opacity = 0; setTimeout(() => $('loader').remove(), 800); state = 'splash'; timeOfDay = 7.2; updateSun(); $('splash').classList.remove('hidden'); }, 300);
+    window.__THREE = THREE;
+    window.__temple = { setLang, camTarget, player, npcs, colliders, groundHeight, teleport, camera, renderer, scene, charSpec, setTime: (h) => { timeOfDay = h; updateSun(); }, setStudy: v => studyMode = v, startAvodah, PLACES, setState: s => state = s, openCreator, endCinematic, startCinematic, joinDance, bootTimes, AUDIO, seekCine: (t) => { cineT = t; }, groups, dancers, bandMembers, get state() { return state; } };
+    const b = $('begin'); b.disabled = false; $('beginTxt').textContent = T('begin'); $('prog').style.opacity = 0;
+    console.log('boot', JSON.stringify(bootTimes));
   } catch (err) { console.error(err); $('loadmsg').textContent = 'Error: ' + err.message; }
 })();
 

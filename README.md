@@ -23,7 +23,7 @@ Everything is in **one file: `index.html`**. No install, no build. Optional fold
 | Walk | `W A S D` / arrows, `Shift` to run | joystick (bottom-left), **Run** button | left stick, triggers to run |
 | Look | drag the mouse, wheel to zoom | drag on the screen | right stick |
 | Walk to a spot | click the floor | tap the floor | — |
-| Talk / give tzedakah / wash / listen | `E` | **Act** | A |
+| Talk / give tzedakah / wash / listen / join the dance | `E` | **Act** | A |
 | First / third person | `V` | **View** | Y |
 | Blueprint (click to go anywhere) | `M` | 🗺 button | Start |
 | Measurements table | `R` | 📐 button | — |
@@ -33,7 +33,7 @@ Everything is in **one file: `index.html`**. No install, no build. Optional fold
 
 ## How it begins
 
-A cinematic flight from Har HaZeisim over Nachal Kidron and the city to Har HaBayis, with music. Then you dress your character (shtreimel / spodik / hat, bekishe / rekel / zupitze, gartel, peyos, beard, yichus) and begin **your pilgrimage** in the plaza below the Southern Steps — a ten-step journey (📜) from the mikveh up to Ezras Yisrael, the Leviim, the Tamid and Birkas Kohanim.
+The opening screen appears at once while Yerushalayim is built behind it. Press **Begin** for a cinematic flight from Har HaZeisim over Nachal Kidron, down over the dancing in Ezras Nashim, past the Heichal and down to the pilgrims below the Southern Steps — with violin-and-guitar music that keeps playing the whole time. Then you dress your character (shtreimel / spodik / hat, bekishe / rekel / zupitze, gartel, peyos, beard, yichus) and begin **your pilgrimage** in the plaza below the Southern Steps — a ten-step journey (📜) from the mikveh up to Ezras Yisrael, the Leviim, the Tamid and Birkas Kohanim.
 
 ## What's inside
 
@@ -41,7 +41,13 @@ A cinematic flight from Har HaZeisim over Nachal Kidron and the city to Har HaBa
 
 **Every place** has an info panel (click the place name top-left) with its Hebrew name, sources, a description and a full calculation table — length, width, height, area, perimeter and volume in amos, and in metres/feet by both **R' Chaim Na'eh (48 cm)** and the **Chazon Ish (57.6 cm)**.
 
-**Sound** is generated live: wind, the crowds of Yerushalayim, swifts, lambs at the north, the crackling Mizbeach, water from the Kiyor, the Kohen Gadol's golden bells as he walks, the Leviim singing in a freygish mode with kinnoros and cymbals, and the silver chatzotzros (tekiah–teruah–tekiah). Put a real field recording at `audio/jerusalem-ambience.mp3` and it will play underneath (works when served over http, e.g. GitHub Pages).
+**Simchas Beis HaSho'eivah** (Sukkah 5:1–4): the Leviim stand on the fifteen steps with kinnor, nevel, chalil, tof and metziltayim and play; the Chassidim and men of deeds dance in a circle between the four golden menoros, holding hands, some with burning torches (lit at night); people clap around them and the women watch from the balcony. You can hear the music from far away — a ♪ sign points the way — and when you arrive press **E** to join the dance. Your feet follow the beat.
+
+**People** turn their heads to look at you, stand in small groups talking with their hands, nod, shift their weight, fold their hands behind their backs, step aside to let you pass (and you can't walk through them); kohanim carry wood up the Kevesh. When you talk to someone, they say it aloud in a real human voice from your browser (English, Hebrew or Spanish; Yiddish is shown as text).
+
+**Music:** original niggunim in freygish and minor — violin, guitar, cello and harp — play in the background without stopping (⚙ to change the volume or turn it off). Near the dancing, the band's music takes over.
+
+**Sound** is light on the computer: crowds, the Leviim's choir, fire, wind, birds and animals are rendered once in the background and then just played, so it never cuts out: wind, the crowds of Yerushalayim, swifts, lambs at the north, the crackling Mizbeach, water from the Kiyor, the Kohen Gadol's golden bells as he walks, the Leviim singing in a freygish mode with kinnoros and cymbals, and the silver chatzotzros (tekiah–teruah–tekiah). Put a real field recording at `audio/jerusalem-ambience.mp3` and it will play underneath, or your own music at `audio/music.mp3` to replace the background music (works when served over http, e.g. GitHub Pages).
 
 **Yichus and halachah:** pick Yisrael, Levi or Kohen. A Yisrael stops at Ezras Yisrael, a Levi at the Duchan, a Kohen may enter the Heichal; nobody enters the Kodesh HaKodashim. *Study mode* (⚙ Settings) lifts the limits so the whole structure can be learned.
 
@@ -59,6 +65,6 @@ See **SOURCES.md** for every source and diagram consulted.
 
 ## Code map (inside `index.html`)
 
-`01 core` renderer, sky/sun, light pool, static merging, floor heights · `02 world` all the architecture · `03 people` character builder, NPCs and dialogue · `04 audio` the synthesised soundscape · `05 i18n` the four languages · `05 places` measurements & descriptions · `06 game` controls, camera, UI, blueprint.
+`01 core` renderer, sky/sun, light pool, static merging, floor heights · `02 world` all the architecture, flames, birds · `03 people` character builder (bones for head, arms, elbows, legs), NPCs, groups, the band and the dance · `04 audio` pre-rendered soundscape, music sequencer, speech · `05 i18n` the four languages · `05 places` measurements & descriptions · `06 game` controls, camera, UI, blueprint.
 
 Built with [three.js](https://threejs.org) (MIT).
